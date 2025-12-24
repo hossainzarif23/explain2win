@@ -7,19 +7,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 let geminiClient: GoogleGenerativeAI | null = null;
 
-function isTruthyEnv(value: string | undefined): boolean {
-  if (!value) return false;
-  return ['1', 'true', 'yes', 'y', 'on'].includes(value.toLowerCase());
-}
-
-const QUIZ_GRADING_DEBUG = isTruthyEnv(process.env.QUIZ_GRADING_DEBUG);
-
-function preview(text: string, maxLen = 600): string {
-  const oneLine = text.replace(/\s+/g, ' ').trim();
-  if (oneLine.length <= maxLen) return oneLine;
-  return `${oneLine.slice(0, maxLen)}…`;
-}
-
 function getGeminiApiKey(): string {
   const key = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
   if (!key) {
@@ -108,30 +95,14 @@ export async function gradeShortAnswerWithGemini(input: {
     `Student answer:\n${input.userAnswer}\n\n` +
     'Return JSON only.';
 
-  if (QUIZ_GRADING_DEBUG) {
-    console.info('[quiz-grader] grading SHORT_ANSWER', {
-      model:
-        process.env.GEMINI_GRADING_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash',
-      questionPreview: preview(input.questionText, 240),
-      userAnswerPreview: preview(input.userAnswer, 240),
-    });
-  }
-
   const result = await model.generateContent(prompt);
   const text = result.response.text() ?? '';
-
-  if (QUIZ_GRADING_DEBUG) {
-    console.info('[quiz-grader] raw response preview', preview(text, 900));
-  }
 
   if (!text.trim()) {
     throw new Error('Empty response from grading model');
   }
 
   const parsed = tryParseGradingJson(text);
-  if (QUIZ_GRADING_DEBUG) {
-    console.info('[quiz-grader] parsed result', parsed);
-  }
 
   return parsed.isCorrect;
 }

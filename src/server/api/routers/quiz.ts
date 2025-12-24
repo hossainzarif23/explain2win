@@ -12,13 +12,6 @@ import { generateQuizQuestions } from '@/server/ai/quiz-generator';
 import { gradeShortAnswerWithGemini } from '@/server/ai/quiz-grader';
 import { CREDIT_COSTS, TIER_LIMITS } from '@/lib/constants';
 
-function isTruthyEnv(value: string | undefined): boolean {
-  if (!value) return false;
-  return ['1', 'true', 'yes', 'y', 'on'].includes(value.toLowerCase());
-}
-
-const QUIZ_GRADING_DEBUG = isTruthyEnv(process.env.QUIZ_GRADING_DEBUG);
-
 const studentTypeSchema = z.enum(['CURIOUS', 'EXAM_FOCUSED', 'CHALLENGING', 'BEGINNER']);
 
 export const quizRouter = createTRPCRouter({
@@ -159,14 +152,6 @@ export const quizRouter = createTRPCRouter({
       // Check if answer is correct
       let isCorrect: boolean;
       if (question.questionType === QuestionType.SHORT_ANSWER) {
-        if (QUIZ_GRADING_DEBUG) {
-          console.info('[quiz] using LLM grading', {
-            quizSessionId: input.quizSessionId,
-            questionId: input.questionId,
-            questionType: question.questionType,
-          });
-        }
-
         try {
           isCorrect = await gradeShortAnswerWithGemini({
             questionText: question.questionText,
@@ -182,14 +167,6 @@ export const quizRouter = createTRPCRouter({
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: 'AI grading failed. Please try again.',
-          });
-        }
-
-        if (QUIZ_GRADING_DEBUG) {
-          console.info('[quiz] LLM grading result', {
-            quizSessionId: input.quizSessionId,
-            questionId: input.questionId,
-            isCorrect,
           });
         }
       } else {
