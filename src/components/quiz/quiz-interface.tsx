@@ -107,42 +107,57 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="border-t-4 border-t-violet-500 shadow-lg">
+          <Card className="border-t-4 border-t-fuchsia-500 shadow-lg">
             <CardHeader>
               <h3 className="text-xl leading-relaxed font-semibold text-slate-900 dark:text-slate-100">
                 {currentQuestion.questionText}
               </h3>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {options.map((option, idx) => (
-                <Button
-                  key={idx}
-                  variant="outline"
-                  className={cn(
-                    'h-auto w-full justify-start px-4 py-4 text-left text-base transition-all',
-                    selectedOption === option
-                      ? 'border-violet-500 bg-violet-50 text-violet-900 ring-1 ring-violet-500 dark:bg-violet-900/20 dark:text-violet-100'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-900'
-                  )}
-                  onClick={() => handleOptionClick(option)}
-                  disabled={isSubmitting}
-                >
-                  <div
-                    className={cn(
-                      'mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs',
-                      selectedOption === option
-                        ? 'border-violet-600 bg-violet-600 text-white'
-                        : 'border-slate-300 dark:border-slate-600'
-                    )}
-                  >
-                    {String.fromCharCode(65 + idx)}
+            <CardContent className="space-y-4">
+              {options.length > 0 ? (
+                <div className="space-y-3">
+                  {options.map((option, idx) => (
+                    <Button
+                      key={idx}
+                      variant="outline"
+                      className={cn(
+                        'h-auto w-full justify-start px-4 py-4 text-left text-base transition-all',
+                        selectedOption === option
+                          ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-900 ring-1 ring-fuchsia-500 dark:bg-fuchsia-900/20 dark:text-fuchsia-100'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-900'
+                      )}
+                      onClick={() => handleOptionClick(option)}
+                      disabled={isSubmitting}
+                    >
+                      <div
+                        className={cn(
+                          'mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs',
+                          selectedOption === option
+                            ? 'border-fuchsia-600 bg-fuchsia-600 text-white'
+                            : 'border-slate-300 dark:border-slate-600'
+                        )}
+                      >
+                        {String.fromCharCode(65 + idx)}
+                      </div>
+                      {option}
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                     <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Your Answer:</p>
+                     <textarea
+                       className="flex min-h-[100px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-fuchsia-300"
+                       placeholder="Type your explanation or answer here..."
+                       value={selectedOption || ''}
+                       onChange={(e) => handleOptionClick(e.target.value)}
+                       disabled={isSubmitting}
+                     />
                   </div>
-                  {option}
-                </Button>
-              ))}
-              {options.length === 0 && (
-                <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-                  No options available for this question.
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Tip: Be as specific as possible to match the AI's expected core concepts.
+                  </p>
                 </div>
               )}
             </CardContent>
