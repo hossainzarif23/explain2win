@@ -1,0 +1,258 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTHENTICATION ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  password      String?   // For credentials auth
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  explanations  Explanation[]
+  quizSessions  QuizSession[]
+  progress      UserProgress?
+  preferences   UserPreferences?
+  subscription  Subscription?
+  credits       Credits?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== CORE FEATURES ====================
+
+model Explanation {
+  id            String   @id @default(cuid())
+  userId        String
+  topic         String
+  transcription String   @db.Text
+  audioUrl      String?
+  duration      Int      // Duration in seconds
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizSessions  QuizSession[]
+  questions     Question[]
+
+  @@index([userId])
+  @@index([topic])
+}
+
+model Question {
+  id              String       @id @default(cuid())
+  explanationId   String
+  questionText    String       @db.Text
+  questionType    QuestionType
+  options         Json?        // For multiple choice
+  correctAnswer   String       @db.Text
+  explanation     String?      @db.Text // Why this is correct
+  difficulty      Difficulty
+  studentType     StudentType
+  createdAt       DateTime     @default(now())
+
+  explanationRef  Explanation    @relation(fields: [explanationId], references: [id], onDelete: Cascade)
+  answers         QuizAnswer[]
+
+  @@index([explanationId])
+  @@index([studentType])
+}
+
+model QuizSession {
+  id             String    @id @default(cuid())
+  userId         String
+  explanationId  String
+  studentType    StudentType
+  score          Float?
+  totalQuestions Int
+  correctAnswers Int       @default(0)
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  explanation Explanation @relation(fields: [explanationId], references: [id], onDelete: Cascade)
+  answers     QuizAnswer[]
+
+  @@index([userId])
+  @@index([explanationId])
+}
+
+model QuizAnswer {
+  id            String   @id @default(cuid())
+  quizSessionId String
+  questionId    String
+  userAnswer    String   @db.Text
+  isCorrect     Boolean
+  timeTaken     Int      // Time in seconds
+  createdAt     DateTime @default(now())
+
+  quizSession QuizSession @relation(fields: [quizSessionId], references: [id], onDelete: Cascade)
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([quizSessionId])
+}
+
+// ==================== USER DATA ====================
+
+model UserProgress {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  totalExplanations   Int      @default(0)
+  totalQuizzes        Int      @default(0)
+  totalCorrectAnswers Int      @default(0)
+  totalQuestions      Int      @default(0)
+  currentStreak       Int      @default(0)
+  longestStreak       Int      @default(0)
+  lastActivityDate    DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreferences {
+  id                   String      @id @default(cuid())
+  userId               String      @unique
+  preferredStudentType StudentType @default(CURIOUS)
+  dailyGoal            Int         @default(3)
+  emailNotifications   Boolean     @default(true)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== MONETIZATION ====================
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  tier                 SubscriptionTier   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Credits {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(50) // Free tier starts with 50 credits
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLog CreditUsage[]
+}
+
+model CreditUsage {
+  id          String    @id @default(cuid())
+  creditsId   String
+  amount      Int       // Negative for usage, positive for purchase/refill
+  type        UsageType
+  description String?
+  createdAt   DateTime  @default(now())
+
+  credits Credits @relation(fields: [creditsId], references: [id], onDelete: Cascade)
+
+  @@index([creditsId])
+}
+
+// ==================== ENUMS ====================
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  FILL_BLANK
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum StudentType {
+  CURIOUS      // Asks "why" and "how" questions
+  EXAM_FOCUSED // Focuses on key concepts and definitions
+  CHALLENGING  // Devil's advocate, edge cases
+  BEGINNER     // Basic understanding questions
+}
+
+enum SubscriptionTier {
+  FREE    // 50 credits/month, basic features
+  PRO     // 500 credits/month, all student types
+  PREMIUM // Unlimited, priority support
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum UsageType {
+  TRANSCRIPTION  // Audio to text
+  QUIZ_GENERATION // AI quiz creation
+  MONTHLY_REFILL // Monthly credit refresh
+  PURCHASE       // Credit pack purchase
+  BONUS          // Promotional credits
+}
