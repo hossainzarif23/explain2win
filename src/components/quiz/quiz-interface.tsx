@@ -2,23 +2,25 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useQuiz } from '@/hooks/useQuiz';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { api } from '@/trpc/react';
+import { QuizSessionReview } from '@/components/quiz/quiz-session-review';
 
 interface QuizInterfaceProps {
   quizSessionId: string;
 }
 
 export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
-  const router = useRouter();
   const startTimeRef = useRef(0);
   const [selectedByQuestionId, setSelectedByQuestionId] = useState<Record<string, string>>({});
+
+  const sessionQuery = api.quiz.getSession.useQuery({ id: quizSessionId });
 
   const {
     currentQuestion,
@@ -35,18 +37,6 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
     startTimeRef.current = Date.now();
   }, [currentQuestionIndex]);
 
-  // Handle completion redirect
-  useEffect(() => {
-    if (complete) {
-      // Could show results here or redirect
-      // For now, let's redirect after a moment
-      const timer = setTimeout(() => {
-        router.push(`/progress`);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [complete, router]);
-
   const handleOptionClick = (option: string) => {
     if (isSubmitting || complete) return;
     if (!currentQuestion) return;
@@ -61,16 +51,9 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
     submitAnswer(selectedOption, timeTaken);
   };
 
-  if (complete) {
-    return (
-      <div className="animate-in fade-in zoom-in flex flex-col items-center justify-center space-y-6 p-12 text-center duration-500">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-          <Check className="h-12 w-12 text-green-600 dark:text-green-400" />
-        </div>
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Quiz Completed!</h2>
-        <p className="text-muted-foreground">Redirecting to results...</p>
-      </div>
-    );
+  const isCompletedSession = !!sessionQuery.data?.completedAt;
+  if (complete || isCompletedSession) {
+    return <QuizSessionReview quizSessionId={quizSessionId} />;
   }
 
   if (!currentQuestion) {
@@ -83,12 +66,17 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
 
   const selectedOption = selectedByQuestionId[currentQuestion.id] ?? null;
 
-  const options = Array.isArray(currentQuestion.options)
-    ? currentQuestion.options.filter((o): o is string => typeof o === 'string')
-    : [];
+  const displayOption = (option: string) => option.replace(/^[A-D]\)\s*/i, '').trim();
+
+  const options =
+    currentQuestion.questionType === 'TRUE_FALSE'
+      ? ['True', 'False']
+      : Array.isArray(currentQuestion.options)
+        ? currentQuestion.options.filter((o): o is string => typeof o === 'string')
+        : [];
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="mx-auto max-w-3xl py-8">
       <div className="mb-6 space-y-2">
         <div className="flex justify-between text-sm font-medium text-slate-500">
           <span>
@@ -121,7 +109,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
                       key={idx}
                       variant="outline"
                       className={cn(
-                        'h-auto w-full justify-start px-4 py-4 text-left text-base transition-all',
+                        'h-auto w-full items-start justify-start gap-3 px-4 py-4 text-left text-base leading-relaxed wrap-break-word whitespace-normal transition-all',
                         selectedOption === option
                           ? 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-900 ring-1 ring-fuchsia-500 dark:bg-fuchsia-900/20 dark:text-fuchsia-100'
                           : 'hover:bg-slate-50 dark:hover:bg-slate-900'
@@ -131,7 +119,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
                     >
                       <div
                         className={cn(
-                          'mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs',
+                          'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs',
                           selectedOption === option
                             ? 'border-fuchsia-600 bg-fuchsia-600 text-white'
                             : 'border-slate-300 dark:border-slate-600'
@@ -139,7 +127,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
                       >
                         {String.fromCharCode(65 + idx)}
                       </div>
-                      {option}
+                      <span className="min-w-0 flex-1">{displayOption(option)}</span>
                     </Button>
                   ))}
                 </div>
@@ -150,16 +138,13 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
                       Your Answer:
                     </p>
                     <textarea
-                      className="flex min-h-[100px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base ring-offset-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-fuchsia-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-fuchsia-300"
+                      className="flex min-h-30 w-full resize-y rounded-md border border-slate-200 bg-white px-3 py-2 text-base leading-relaxed ring-offset-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-fuchsia-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus-visible:ring-fuchsia-300"
                       placeholder="Type your explanation or answer here..."
                       value={selectedOption || ''}
                       onChange={(e) => handleOptionClick(e.target.value)}
                       disabled={isSubmitting}
                     />
                   </div>
-                  <p className="text-muted-foreground text-[11px] italic">
-                    Tip: Be as specific as possible to match the AI&apos;s expected core concepts.
-                  </p>
                 </div>
               )}
             </CardContent>
