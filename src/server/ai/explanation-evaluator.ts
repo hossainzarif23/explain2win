@@ -189,26 +189,6 @@ export async function evaluateExplanationAttempt(input: {
     };
   };
 
-  const fallbackEvaluation = (reason: string): ExplanationEvaluation => {
-    const detailedFeedback =
-      'We could not reliably auto-evaluate this attempt due to a model formatting issue.\n\n' +
-      `Reason: ${reason}`;
-    return {
-      overallScore: 5,
-      correctness: 5,
-      clarity: 5,
-      depth: 5,
-      relevance: 5,
-      structure: 5,
-      strengths: [],
-      improvements: ['Retry evaluation (or try again in a minute).'],
-      shortFeedback: 'Evaluation failed due to a formatting issue. Please retry.',
-      detailedFeedback,
-      missingConcepts: [],
-      learningObjectives: [],
-    };
-  };
-
   const generate = async (systemInstruction: string, prompt: string, label: string) => {
     const model = getEvalModel(systemInstruction);
     const result = await model.generateContent(prompt);
@@ -279,64 +259,19 @@ export async function evaluateExplanationAttempt(input: {
 
   const text = await generate(systemInstruction, prompt, 'primary');
 
-  const parseWithRepair = async (raw: string): Promise<ExplanationEvaluation> => {
-    try {
-      return toEvaluation(raw);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('[ai.explanation_evaluator] parse_failed', {
-        evalId,
-        error: errorMessage,
-        responsePreview: preview(raw, 420),
-        ms: Date.now() - startedAt,
-      });
-
-      const repairInstruction =
-        'You are a JSON repair tool. Output ONLY valid JSON that matches the target schema exactly.\n' +
-        'If the prior output is truncated or malformed, regenerate a complete JSON object based on the given topic, scope, and transcript.\n' +
-        'Do not include markdown fences, commentary, or trailing text.';
-
-      const repairPrompt =
-        `TOPIC: ${input.topic}\n` +
-        `SCOPE STATEMENT: ${input.scopeStatement}\n\n` +
-        `STUDENT EXPLANATION (TRANSCRIPT):\n"""\n${input.transcription}\n"""\n\n` +
-        `PRIOR (INVALID) OUTPUT:\n"""\n${raw}\n"""\n\n` +
-        'Return the corrected JSON only.';
-
-      const repaired = await generate(repairInstruction, repairPrompt, 'repair');
-      try {
-        return toEvaluation(repaired);
-      } catch (err2: unknown) {
-        const errorMessage2 = err2 instanceof Error ? err2.message : String(err2);
-        console.error('[ai.explanation_evaluator] repair_parse_failed', {
-          evalId,
-          error: errorMessage2,
-          responsePreview: preview(repaired, 420),
-          ms: Date.now() - startedAt,
-        });
-
-        const retryInstruction =
-          systemInstruction +
-          '\n\nIMPORTANT: Ensure the JSON object is complete and syntactically valid (all quotes/brackets/braces closed).';
-
-        const retried = await generate(retryInstruction, prompt, 'retry');
-        try {
-          return toEvaluation(retried);
-        } catch (err3: unknown) {
-          const errorMessage3 = err3 instanceof Error ? err3.message : String(err3);
-          console.error('[ai.explanation_evaluator] retry_parse_failed', {
-            evalId,
-            error: errorMessage3,
-            responsePreview: preview(retried, 420),
-            ms: Date.now() - startedAt,
-          });
-          return fallbackEvaluation(errorMessage3);
-        }
-      }
-    }
-  };
-
-  const evaluation = await parseWithRepair(text.trim());
+  let evaluation: ExplanationEvaluation;
+  try {
+    evaluation = toEvaluation(text.trim());
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('[ai.explanation_evaluator] parse_failed', {
+      evalId,
+      error: errorMessage,
+      responsePreview: preview(text, 420),
+      ms: Date.now() - startedAt,
+    });
+    throw err;
+  }
 
   if (shouldDebug()) {
     console.info('[ai.explanation_evaluator] parsed', {

@@ -173,7 +173,7 @@ export const explanationRouter = createTRPCRouter({
       });
 
       // Evaluate the explanation using the StudySession scope.
-      // Evaluation is best-effort: if it fails, we still keep the explanation record.
+      // For debugging/strictness: if evaluation fails, surface the error and block the next steps.
       try {
         console.info('[explanation.create] evaluation_begin', {
           requestId,
@@ -222,40 +222,31 @@ export const explanationRouter = createTRPCRouter({
           detailedFeedbackChars: evaluation.detailedFeedback.length,
         });
 
-        try {
-          const updated = await ctx.prisma.explanation.update({
-            where: { id: explanation.id },
-            data: {
-              evalOverallScore: evaluation.overallScore,
-              evalCorrectness: evaluation.correctness,
-              evalClarity: evaluation.clarity,
-              evalDepth: evaluation.depth,
-              evalRelevance: evaluation.relevance,
-              evalStructure: evaluation.structure,
-              evalStrengths: evaluation.strengths,
-              evalImprovements: evaluation.improvements,
-              evalShortFeedback: evaluation.shortFeedback,
-              evalDetailedFeedback: evaluation.detailedFeedback,
-              evalMissingConcepts: evaluation.missingConcepts,
-              evalLearningObjectives: evaluation.learningObjectives,
-            },
-          });
+        const updated = await ctx.prisma.explanation.update({
+          where: { id: explanation.id },
+          data: {
+            evalOverallScore: evaluation.overallScore,
+            evalCorrectness: evaluation.correctness,
+            evalClarity: evaluation.clarity,
+            evalDepth: evaluation.depth,
+            evalRelevance: evaluation.relevance,
+            evalStructure: evaluation.structure,
+            evalStrengths: evaluation.strengths,
+            evalImprovements: evaluation.improvements,
+            evalShortFeedback: evaluation.shortFeedback,
+            evalDetailedFeedback: evaluation.detailedFeedback,
+            evalMissingConcepts: evaluation.missingConcepts,
+            evalLearningObjectives: evaluation.learningObjectives,
+          },
+        });
 
-          console.info('[explanation.create] evaluation_persisted', {
-            requestId,
-            explanationId: explanation.id,
-            ms: Date.now() - startedAt,
-          });
+        console.info('[explanation.create] evaluation_persisted', {
+          requestId,
+          explanationId: explanation.id,
+          ms: Date.now() - startedAt,
+        });
 
-          return updated;
-        } catch (err: unknown) {
-          console.error('[explanation.create] evaluation_persist_failed', {
-            requestId,
-            explanationId: explanation.id,
-            error: err instanceof Error ? err.message : String(err),
-          });
-          return explanation;
-        }
+        return updated;
       } catch (err: unknown) {
         console.error('[explanation.create] evaluation_failed', {
           requestId,
@@ -263,7 +254,14 @@ export const explanationRouter = createTRPCRouter({
           error: err instanceof Error ? err.message : String(err),
           ms: Date.now() - startedAt,
         });
-        return explanation;
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message:
+            `Evaluation failed (requestId=${requestId}, explanationId=${explanation.id}): ` +
+            (err instanceof Error ? err.message : String(err)),
+          cause: err,
+        });
       }
     }),
 
