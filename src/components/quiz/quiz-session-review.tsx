@@ -2,8 +2,10 @@
 
 import type { QuestionType } from '@prisma/client';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api } from '@/trpc/react';
 
@@ -27,6 +29,7 @@ function getOptionsForQuestion(question: {
 }
 
 export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) {
+  const router = useRouter();
   const sessionQuery = api.quiz.getSession.useQuery({ id: quizSessionId });
 
   if (sessionQuery.isLoading) {
@@ -58,6 +61,13 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
   const totalQuestions = session.totalQuestions || answers.length;
   const score = session.score ?? (totalQuestions ? (correctCount / totalQuestions) * 100 : 0);
 
+  const studySession = session.explanation?.studySession ?? null;
+  const explanationScore = session.explanation?.evalOverallScore ?? null;
+  const isPerfectQuiz = correctCount === totalQuestions && totalQuestions > 0;
+  const passesExplanation = typeof explanationScore === 'number' && explanationScore >= 9;
+  const attemptMastery = passesExplanation && isPerfectQuiz;
+  const sessionCompleted = studySession?.status === 'COMPLETED';
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 py-8">
       <Card className="shadow-sm">
@@ -69,6 +79,37 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
             <p className="text-muted-foreground text-sm">
               Score: {Math.round(score)}% • {correctCount}/{totalQuestions} correct
             </p>
+            {studySession ? (
+              <div className="mt-3 rounded-xl border bg-white p-4 text-sm dark:bg-slate-950">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                      Study session
+                    </div>
+                    <div className="font-medium text-slate-900 dark:text-slate-100">
+                      {studySession.topic}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      Mastery streak: {studySession.masteryStreak} • This attempt:{' '}
+                      {attemptMastery ? 'meets mastery' : 'not yet'}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {sessionCompleted ? (
+                      <Button onClick={() => router.push('/progress')}>View Progress</Button>
+                    ) : (
+                      <Button
+                        className="bg-violet-600 hover:bg-violet-700"
+                        onClick={() => router.push(`/explain?studySessionId=${studySession.id}`)}
+                      >
+                        Next Attempt
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </CardHeader>
       </Card>

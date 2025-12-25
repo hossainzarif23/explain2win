@@ -42,9 +42,9 @@ export const progressRouter = createTRPCRouter({
         ctx.prisma.explanation.findMany({
           where: { userId },
           include: {
-            quizSessions: {
+            quizSession: {
               where: { completedAt: { not: null } },
-              select: { score: true },
+              select: { score: true, createdAt: true },
             },
           },
           orderBy: { createdAt: 'desc' },
@@ -68,9 +68,8 @@ export const progressRouter = createTRPCRouter({
     });
 
     const topicPerformance = recentExplanations.map((e) => {
-      const count = e.quizSessions.length;
-      const averageScore =
-        count > 0 ? e.quizSessions.reduce((acc, q) => acc + (q.score ?? 0), 0) / count : 0;
+      const count = e.quizSession ? 1 : 0;
+      const averageScore = e.quizSession?.score ?? 0;
       return {
         id: e.id,
         topic: e.topic,
@@ -158,9 +157,9 @@ export const progressRouter = createTRPCRouter({
     const explanations = await ctx.prisma.explanation.findMany({
       where: { userId: ctx.session.user.id },
       include: {
-        quizSessions: {
+        quizSession: {
           where: { completedAt: { not: null } },
-          select: { score: true },
+          select: { score: true, createdAt: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -170,12 +169,9 @@ export const progressRouter = createTRPCRouter({
     return explanations.map((e) => ({
       id: e.id,
       topic: e.topic,
-      attemptCount: e.quizSessions.length,
-      avgScore:
-        e.quizSessions.length > 0
-          ? e.quizSessions.reduce((acc, q) => acc + (q.score ?? 0), 0) / e.quizSessions.length
-          : 0,
-      lastAttempt: e.quizSessions[0]?.score ?? null,
+      attemptCount: e.quizSession ? 1 : 0,
+      avgScore: e.quizSession?.score ?? 0,
+      lastAttempt: e.quizSession?.score ?? null,
     }));
   }),
 

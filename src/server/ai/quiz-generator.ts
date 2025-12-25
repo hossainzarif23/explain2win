@@ -8,6 +8,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   QUIZ_GENERATION_SYSTEM_PROMPT,
   QUIZ_GENERATION_USER_PROMPT,
+  QUIZ_GENERATION_USER_PROMPT_V2,
   STUDENT_TYPE_PROMPTS,
 } from '@/server/ai/prompts';
 
@@ -16,9 +17,9 @@ let geminiClient: GoogleGenerativeAI | null = null;
 function getGeminiClient(): GoogleGenerativeAI {
   if (geminiClient) return geminiClient;
 
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('GOOGLE_AI_API_KEY (or GEMINI_API_KEY) is not set');
+    throw new Error('Missing Gemini API key (set GOOGLE_API_KEY or GEMINI_API_KEY)');
   }
 
   geminiClient = new GoogleGenerativeAI(apiKey);
@@ -65,6 +66,47 @@ interface GenerateQuizParams {
   transcription: string;
   studentType: 'CURIOUS' | 'EXAM_FOCUSED' | 'CHALLENGING' | 'BEGINNER';
   questionCount: number;
+  missingConcepts?: string[];
+  learningObjectives?: string[];
+  avoidQuestionThemes?: string[];
+  avoidLearningObjectives?: string[];
+}
+
+function tryParseJson(text: string): unknown {
+  const trimmed = text.trim();
+  const candidates: string[] = [trimmed];
+
+  const withoutFences = trimmed
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
+  if (withoutFences !== trimmed) candidates.push(withoutFences);
+
+  const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
+  if (arrayMatch) candidates.push(arrayMatch[0]);
+
+  const objMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (objMatch) candidates.push(objMatch[0]);
+
+  for (const candidate of candidates) {
+    const repaired = candidate.replace(/,\s*([}\]])/g, '$1');
+    try {
+      return JSON.parse(repaired);
+    } catch {
+      // try next
+    }
+  }
+
+  throw new Error('Failed to parse JSON');
+}
+
+function normalizeQuestions(parsed: unknown): unknown[] {
+  if (Array.isArray(parsed)) return parsed;
+  if (typeof parsed === 'object' && parsed !== null) {
+    const maybe = (parsed as { questions?: unknown }).questions;
+    if (Array.isArray(maybe)) return maybe;
+  }
+  throw new Error('Invalid response format');
 }
 
 /**
@@ -75,6 +117,10 @@ export async function generateQuizQuestions({
   transcription,
   studentType,
   questionCount,
+  missingConcepts,
+  learningObjectives,
+  avoidQuestionThemes,
+  avoidLearningObjectives,
 }: GenerateQuizParams): Promise<GeneratedQuestion[]> {
   const studentTypeContext = STUDENT_TYPE_PROMPTS[studentType];
 
@@ -82,9 +128,26 @@ export async function generateQuizQuestions({
     `${QUIZ_GENERATION_SYSTEM_PROMPT}\n\nStudent Persona:\n${studentTypeContext}`
   );
 
-  const result = await model.generateContent(
-    QUIZ_GENERATION_USER_PROMPT(topic, transcription, studentType, questionCount)
-  );
+  const shouldUseFocus =
+    (missingConcepts?.length ?? 0) > 0 ||
+    (learningObjectives?.length ?? 0) > 0 ||
+    (avoidQuestionThemes?.length ?? 0) > 0 ||
+    (avoidLearningObjectives?.length ?? 0) > 0;
+
+  const userPrompt = shouldUseFocus
+    ? QUIZ_GENERATION_USER_PROMPT_V2({
+        topic,
+        transcription,
+        studentType,
+        questionCount,
+        missingConcepts,
+        learningObjectives,
+        avoidQuestionThemes,
+        avoidLearningObjectives,
+      })
+    : QUIZ_GENERATION_USER_PROMPT(topic, transcription, studentType, questionCount);
+
+  const result = await model.generateContent(userPrompt);
 
   const content = result.response.text();
 
@@ -93,25 +156,20 @@ export async function generateQuizQuestions({
   }
 
   try {
-    // Parse the JSON response
-    const parsed = JSON.parse(content);
+    const parsed = tryParseJson(content);
+    const questions = normalizeQuestions(parsed);
 
-    // Handle both array and object with questions array
-    const questions = Array.isArray(parsed) ? parsed : parsed.questions;
-
-    if (!Array.isArray(questions)) {
-      throw new Error('Invalid response format');
-    }
-
-    // Validate and transform questions
-    return questions.map((q: GeneratedQuestion) => ({
-      questionText: q.questionText,
-      questionType: validateQuestionType(q.questionType),
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation || '',
-      difficulty: validateDifficulty(q.difficulty),
-    }));
+    return questions.map((q: unknown) => {
+      const item = q as Partial<GeneratedQuestion>;
+      return {
+        questionText: String(item.questionText ?? ''),
+        questionType: validateQuestionType(String(item.questionType ?? 'MULTIPLE_CHOICE')),
+        options: (Array.isArray(item.options) ? item.options : null) as string[] | null,
+        correctAnswer: String(item.correctAnswer ?? ''),
+        explanation: typeof item.explanation === 'string' ? item.explanation : '',
+        difficulty: validateDifficulty(String(item.difficulty ?? 'MEDIUM')),
+      };
+    });
   } catch (error) {
     console.error('Failed to parse quiz questions:', error);
     throw new Error('Failed to parse generated questions');

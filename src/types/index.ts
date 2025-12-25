@@ -9,6 +9,7 @@ import type {
   Question,
   QuizSession,
   QuizAnswer,
+  StudySession,
   UserProgress,
   UserPreferences,
   Subscription,
@@ -29,6 +30,7 @@ export type {
   Question,
   QuizSession,
   QuizAnswer,
+  StudySession,
   UserProgress,
   UserPreferences,
   Subscription,
@@ -52,10 +54,10 @@ export type UserWithRelations = User & {
 
 export type ExplanationWithRelations = Explanation & {
   questions: Question[];
-  quizSessions: QuizSession[];
+  quizSession?: QuizSession | null;
+  studySession?: StudySession | null;
   _count?: {
     questions: number;
-    quizSessions: number;
   };
 };
 

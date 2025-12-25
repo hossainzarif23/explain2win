@@ -72,6 +72,65 @@ Return a JSON array with this exact structure:
 
 Return ONLY the JSON array, no other text.`;
 
+export const QUIZ_GENERATION_USER_PROMPT_V2 = (input: {
+  topic: string;
+  transcription: string;
+  studentType: string;
+  questionCount: number;
+  missingConcepts?: string[];
+  learningObjectives?: string[];
+  avoidQuestionThemes?: string[];
+  avoidLearningObjectives?: string[];
+}) => {
+  const missingConcepts = (input.missingConcepts ?? []).filter(Boolean);
+  const learningObjectives = (input.learningObjectives ?? []).filter(Boolean);
+  const avoidQuestionThemes = (input.avoidQuestionThemes ?? []).filter(Boolean);
+  const avoidLearningObjectives = (input.avoidLearningObjectives ?? []).filter(Boolean);
+
+  return `
+Topic: ${input.topic}
+
+Student's Explanation:
+"""
+${input.transcription}
+"""
+
+Generate ${input.questionCount} quiz questions from the perspective of: ${input.studentType}
+
+FOCUS (prioritize these knowledge gaps and targets):
+- Missing concepts to test (highest priority):
+${missingConcepts.length ? missingConcepts.map((c) => `  - ${c}`).join('\n') : '  - (none provided)'}
+- Learning objectives to verify:
+${learningObjectives.length ? learningObjectives.map((o) => `  - ${o}`).join('\n') : '  - (none provided)'}
+
+DIVERSITY CONSTRAINTS (avoid repeating prior attempts):
+- Do NOT reuse these learning objectives verbatim:
+${avoidLearningObjectives.length ? avoidLearningObjectives.map((o) => `  - ${o}`).join('\n') : '  - (none provided)'}
+- Do NOT ask near-duplicate questions matching these prior question themes:
+${avoidQuestionThemes.length ? avoidQuestionThemes.map((q) => `  - ${q}`).join('\n') : '  - (none provided)'}
+
+Rules:
+- If the focus lists are empty, generate a balanced quiz covering the explanation.
+- Prefer questions that surface misconceptions and missing pieces.
+- Keep question text concise and unambiguous.
+- Use a mix of question types (MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER).
+- For MULTIPLE_CHOICE: provide exactly 4 options labeled A) B) C) D).
+
+Return a JSON array with this exact structure:
+[
+  {
+    "questionText": "The question text",
+    "questionType": "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER",
+    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for non-MC,
+    "correctAnswer": "The correct answer",
+    "explanation": "Why this is correct",
+    "difficulty": "EASY" | "MEDIUM" | "HARD"
+  }
+]
+
+Return ONLY the JSON array, no other text.`;
+};
+
 export const TRANSCRIPTION_SYSTEM_PROMPT = `You are a transcription post-processor. Clean up and format the raw transcription while:
 1. Preserving the original meaning and content
 2. Fixing obvious speech-to-text errors

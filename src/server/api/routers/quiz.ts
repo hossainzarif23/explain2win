@@ -30,6 +30,15 @@ export const quizRouter = createTRPCRouter({
       // Get the explanation
       const explanation = await ctx.prisma.explanation.findUnique({
         where: { id: input.explanationId },
+        select: {
+          id: true,
+          userId: true,
+          topic: true,
+          transcription: true,
+          studySessionId: true,
+          evalMissingConcepts: true,
+          evalLearningObjectives: true,
+        },
       });
 
       if (!explanation || explanation.userId !== ctx.session.user.id) {
@@ -37,6 +46,23 @@ export const quizRouter = createTRPCRouter({
           code: 'NOT_FOUND',
           message: 'Explanation not found',
         });
+      }
+
+      // Idempotency: one QuizSession per Explanation. If it already exists, return it.
+      const existingSession = await ctx.prisma.quizSession.findUnique({
+        where: { explanationId: input.explanationId },
+        include: {
+          answers: { include: { question: true } },
+          explanation: true,
+        },
+      });
+
+      if (existingSession) {
+        const existingQuestions = await ctx.prisma.question.findMany({
+          where: { explanationId: input.explanationId },
+          orderBy: { createdAt: 'asc' },
+        });
+        return { quizSession: existingSession, questions: existingQuestions };
       }
 
       // Check subscription tier for student type access
@@ -66,12 +92,56 @@ export const quizRouter = createTRPCRouter({
         });
       }
 
-      // Generate questions using AI
+      const toStringArray = (value: unknown): string[] => {
+        if (!Array.isArray(value)) return [];
+        return value
+          .filter((v): v is string => typeof v === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean);
+      };
+
+      const missingConcepts = toStringArray(explanation.evalMissingConcepts);
+      const learningObjectives = toStringArray(explanation.evalLearningObjectives);
+
+      // Diversity: pull prior question themes and objectives from previous attempts in this StudySession.
+      const [priorQuestions, priorObjectives] = await Promise.all([
+        ctx.prisma.question.findMany({
+          where: {
+            explanationRef: {
+              studySessionId: explanation.studySessionId,
+              id: { not: explanation.id },
+            },
+          },
+          select: { questionText: true },
+          orderBy: { createdAt: 'desc' },
+          take: 25,
+        }),
+        ctx.prisma.explanation.findMany({
+          where: {
+            studySessionId: explanation.studySessionId,
+            id: { not: explanation.id },
+          },
+          select: { evalLearningObjectives: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
+      ]);
+
+      const avoidQuestionThemes = priorQuestions.map((q) => q.questionText).filter(Boolean);
+      const avoidLearningObjectives = Array.from(
+        new Set(priorObjectives.flatMap((e) => toStringArray(e.evalLearningObjectives)))
+      );
+
+      // Generate questions using AI (focused on weaknesses + diverse across attempts)
       const generatedQuestions = await generateQuizQuestions({
         topic: explanation.topic,
         transcription: explanation.transcription,
         studentType: input.studentType,
         questionCount: input.questionCount,
+        missingConcepts,
+        learningObjectives,
+        avoidQuestionThemes,
+        avoidLearningObjectives,
       });
 
       // Create quiz session and questions in a transaction
@@ -209,8 +279,24 @@ export const quizRouter = createTRPCRouter({
   complete: protectedProcedure
     .input(z.object({ quizSessionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const quizSessionSelect = {
+        id: true,
+        userId: true,
+        explanationId: true,
+        studentType: true,
+        score: true,
+        totalQuestions: true,
+        correctAnswers: true,
+        completedAt: true,
+        createdAt: true,
+      } as const;
+
       const session = await ctx.prisma.quizSession.findUnique({
         where: { id: input.quizSessionId },
+        select: {
+          ...quizSessionSelect,
+          explanation: { select: { studySessionId: true, evalOverallScore: true } },
+        },
       });
 
       if (!session || session.userId !== ctx.session.user.id) {
@@ -220,16 +306,61 @@ export const quizRouter = createTRPCRouter({
         });
       }
 
+      // Idempotent: avoid double-counting progress / streak if already completed.
+      if (session.completedAt) {
+        return {
+          quizSession: {
+            id: session.id,
+            userId: session.userId,
+            explanationId: session.explanationId,
+            studentType: session.studentType,
+            score: session.score,
+            totalQuestions: session.totalQuestions,
+            correctAnswers: session.correctAnswers,
+            completedAt: session.completedAt,
+            createdAt: session.createdAt,
+          },
+          mastery: null,
+        };
+      }
+
+      const studySession = await ctx.prisma.studySession.findUnique({
+        where: { id: session.explanation.studySessionId },
+        select: { id: true, userId: true, status: true, masteryStreak: true },
+      });
+
+      if (!studySession || studySession.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Study session not found',
+        });
+      }
+
       const score = (session.correctAnswers / session.totalQuestions) * 100;
 
+      const isPerfectQuiz = session.correctAnswers === session.totalQuestions;
+      const explanationScore = session.explanation.evalOverallScore ?? null;
+      const passesExplanation = explanationScore !== null && explanationScore >= 9;
+      const attemptMastery = passesExplanation && isPerfectQuiz;
+
+      const alreadyCompleted = studySession.status === 'COMPLETED';
+      const nextStreak = alreadyCompleted
+        ? studySession.masteryStreak
+        : attemptMastery
+          ? studySession.masteryStreak + 1
+          : 0;
+
+      const completesSession = !alreadyCompleted && attemptMastery && nextStreak >= 2;
+
       // Update session and progress
-      const [updatedSession] = await ctx.prisma.$transaction([
+      const [updatedSession, , updatedStudySession] = await ctx.prisma.$transaction([
         ctx.prisma.quizSession.update({
           where: { id: input.quizSessionId },
           data: {
             score,
             completedAt: new Date(),
           },
+          select: quizSessionSelect,
         }),
         ctx.prisma.userProgress.update({
           where: { userId: ctx.session.user.id },
@@ -240,9 +371,31 @@ export const quizRouter = createTRPCRouter({
             lastActivityDate: new Date(),
           },
         }),
+        ctx.prisma.studySession.update({
+          where: { id: studySession.id },
+          data: alreadyCompleted
+            ? {}
+            : {
+                masteryStreak: nextStreak,
+                status: completesSession ? 'COMPLETED' : 'ACTIVE',
+                completedAt: completesSession ? new Date() : null,
+              },
+          select: { id: true, status: true, masteryStreak: true, completedAt: true },
+        }),
       ]);
 
-      return updatedSession;
+      return {
+        quizSession: updatedSession,
+        mastery: {
+          explanationScore,
+          passesExplanation,
+          isPerfectQuiz,
+          attemptMastery,
+          masteryStreak: updatedStudySession.masteryStreak,
+          sessionCompleted: updatedStudySession.status === 'COMPLETED',
+          studySessionId: updatedStudySession.id,
+        },
+      };
     }),
 
   /**
@@ -254,7 +407,20 @@ export const quizRouter = createTRPCRouter({
       const session = await ctx.prisma.quizSession.findUnique({
         where: { id: input.id },
         include: {
-          explanation: true,
+          explanation: {
+            include: {
+              studySession: {
+                select: {
+                  id: true,
+                  topic: true,
+                  scopeStatement: true,
+                  status: true,
+                  masteryStreak: true,
+                  completedAt: true,
+                },
+              },
+            },
+          },
           answers: {
             include: { question: true },
           },

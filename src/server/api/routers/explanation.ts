@@ -8,6 +8,7 @@ import { TRPCError } from '@trpc/server';
 
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { CREDIT_COSTS } from '@/lib/constants';
+import { evaluateExplanationAttempt } from '@/server/ai/explanation-evaluator';
 
 export const explanationRouter = createTRPCRouter({
   /**
@@ -17,6 +18,10 @@ export const explanationRouter = createTRPCRouter({
     .input(
       z.object({
         topic: z.string().min(1).max(200),
+        // Option B (preferred) will provide this from the UI.
+        // Kept optional for backward compatibility while we roll out Study Sessions.
+        scopeStatement: z.string().min(1).max(2000).optional(),
+        studySessionId: z.string().optional(),
         transcription: z.string().min(10),
         audioUrl: z.string().url().optional(),
         duration: z.number().min(1), // Duration in seconds
@@ -38,11 +43,49 @@ export const explanationRouter = createTRPCRouter({
         });
       }
 
+      // StudySession is now the canonical container for repeated attempts.
+      // If a StudySession isn't provided (legacy clients), create one with a basic scope.
+      let studySessionId: string;
+      if (input.studySessionId) {
+        const session = await ctx.prisma.studySession.findUnique({
+          where: { id: input.studySessionId },
+          select: { id: true, userId: true },
+        });
+
+        if (!session || session.userId !== ctx.session.user.id) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Study session not found',
+          });
+        }
+
+        studySessionId = session.id;
+      } else {
+        studySessionId = (
+          await ctx.prisma.studySession.create({
+            data: {
+              userId: ctx.session.user.id,
+              topic: input.topic,
+              scopeStatement:
+                input.scopeStatement ??
+                `Explain the topic: ${input.topic}. Focus on the core concepts and correct reasoning.`,
+            },
+            select: { id: true },
+          })
+        ).id;
+      }
+
+      const attemptNumber = input.studySessionId
+        ? (await ctx.prisma.explanation.count({ where: { studySessionId } })) + 1
+        : 1;
+
       // Create explanation and deduct credits in a transaction
       const [explanation] = await ctx.prisma.$transaction([
         ctx.prisma.explanation.create({
           data: {
             userId: ctx.session.user.id,
+            studySessionId,
+            attemptNumber,
             topic: input.topic,
             transcription: input.transcription,
             audioUrl: input.audioUrl,
@@ -72,7 +115,47 @@ export const explanationRouter = createTRPCRouter({
         }),
       ]);
 
-      return explanation;
+      // Evaluate the explanation using the StudySession scope.
+      // Evaluation is best-effort: if it fails, we still keep the explanation record.
+      try {
+        const session = await ctx.prisma.studySession.findUnique({
+          where: { id: studySessionId },
+          select: { scopeStatement: true },
+        });
+
+        const scopeStatement =
+          session?.scopeStatement ??
+          input.scopeStatement ??
+          `Explain the topic: ${input.topic}. Focus on the core concepts and correct reasoning.`;
+
+        const evaluation = await evaluateExplanationAttempt({
+          topic: input.topic,
+          scopeStatement,
+          transcription: input.transcription,
+        });
+
+        const updated = await ctx.prisma.explanation.update({
+          where: { id: explanation.id },
+          data: {
+            evalOverallScore: evaluation.overallScore,
+            evalCorrectness: evaluation.correctness,
+            evalClarity: evaluation.clarity,
+            evalDepth: evaluation.depth,
+            evalRelevance: evaluation.relevance,
+            evalStructure: evaluation.structure,
+            evalStrengths: evaluation.strengths,
+            evalImprovements: evaluation.improvements,
+            evalShortFeedback: evaluation.shortFeedback,
+            evalDetailedFeedback: evaluation.detailedFeedback,
+            evalMissingConcepts: evaluation.missingConcepts,
+            evalLearningObjectives: evaluation.learningObjectives,
+          },
+        });
+
+        return updated;
+      } catch {
+        return explanation;
+      }
     }),
 
   /**
@@ -95,7 +178,10 @@ export const explanationRouter = createTRPCRouter({
         orderBy: { createdAt: 'desc' },
         include: {
           _count: {
-            select: { quizSessions: true, questions: true },
+            select: { questions: true },
+          },
+          quizSession: {
+            select: { id: true, score: true, completedAt: true, createdAt: true },
           },
         },
       });
@@ -115,29 +201,25 @@ export const explanationRouter = createTRPCRouter({
   /**
    * Get a single explanation by ID
    */
-  getById: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const explanation = await ctx.prisma.explanation.findUnique({
-        where: { id: input.id },
-        include: {
-          questions: true,
-          quizSessions: {
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-          },
-        },
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const explanation = await ctx.prisma.explanation.findUnique({
+      where: { id: input.id },
+      include: {
+        questions: true,
+        quizSession: true,
+        studySession: true,
+      },
+    });
+
+    if (!explanation || explanation.userId !== ctx.session.user.id) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Explanation not found',
       });
+    }
 
-      if (!explanation || explanation.userId !== ctx.session.user.id) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Explanation not found',
-        });
-      }
-
-      return explanation;
-    }),
+    return explanation;
+  }),
 
   /**
    * Delete an explanation

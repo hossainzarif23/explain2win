@@ -25,6 +25,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   explanations  Explanation[]
+  studySessions StudySession[]
   quizSessions  QuizSession[]
   progress      UserProgress?
   preferences   UserPreferences?
@@ -73,6 +74,8 @@ model VerificationToken {
 model Explanation {
   id            String   @id @default(cuid())
   userId        String
+  studySessionId String
+  attemptNumber  Int
   topic         String
   transcription String   @db.Text
   audioUrl      String?
@@ -80,12 +83,46 @@ model Explanation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // ===== Evaluation artifacts (filled after transcription) =====
+  evalOverallScore     Int?
+  evalCorrectness      Int?
+  evalClarity          Int?
+  evalDepth            Int?
+  evalRelevance        Int?
+  evalStructure        Int?
+  evalStrengths        Json?
+  evalImprovements     Json?
+  evalShortFeedback    String?  @db.Text
+  evalDetailedFeedback String?  @db.Text
+  evalMissingConcepts  Json?
+  evalLearningObjectives Json?
+
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quizSessions  QuizSession[]
+  studySession  StudySession  @relation(fields: [studySessionId], references: [id], onDelete: Cascade)
+  quizSession   QuizSession?
   questions     Question[]
 
   @@index([userId])
+  @@index([studySessionId])
   @@index([topic])
+}
+
+model StudySession {
+  id             String             @id @default(cuid())
+  userId         String
+  topic          String
+  scopeStatement String             @db.Text
+  status         StudySessionStatus @default(ACTIVE)
+  masteryStreak  Int                @default(0) // consecutive attempts meeting mastery criteria
+  createdAt      DateTime           @default(now())
+  completedAt    DateTime?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  explanations Explanation[]
+
+  @@index([userId])
+  @@index([topic])
+  @@index([status])
 }
 
 model Question {
@@ -110,7 +147,7 @@ model Question {
 model QuizSession {
   id             String    @id @default(cuid())
   userId         String
-  explanationId  String
+  explanationId  String    @unique
   studentType    StudentType
   score          Float?
   totalQuestions Int
@@ -255,4 +292,9 @@ enum UsageType {
   MONTHLY_REFILL // Monthly credit refresh
   PURCHASE       // Credit pack purchase
   BONUS          // Promotional credits
+}
+
+enum StudySessionStatus {
+  ACTIVE
+  COMPLETED
 }
