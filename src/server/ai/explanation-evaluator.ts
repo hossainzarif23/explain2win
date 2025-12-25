@@ -5,6 +5,7 @@
  * Stores both student-visible short feedback and hidden detailed feedback.
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { randomUUID } from 'crypto';
 
 export type ExplanationEvaluation = {
   overallScore: number; // 1-10
@@ -30,6 +31,21 @@ const WEIGHTS = {
 } as const;
 
 let geminiClient: GoogleGenerativeAI | null = null;
+
+function shouldDebug(): boolean {
+  return (
+    process.env.DEBUG_EXPLANATION_EVAL === '1' ||
+    process.env.DEBUG_EXPLANATION_EVAL === 'true' ||
+    process.env.DEBUG_AI === '1' ||
+    process.env.DEBUG_AI === 'true'
+  );
+}
+
+function preview(text: string, max = 200): string {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= max) return cleaned;
+  return `${cleaned.slice(0, max)}…`;
+}
 
 function getGeminiApiKey(): string {
   const key = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
@@ -124,6 +140,22 @@ export async function evaluateExplanationAttempt(input: {
   scopeStatement: string;
   transcription: string;
 }): Promise<ExplanationEvaluation> {
+  const evalId = randomUUID();
+  const startedAt = Date.now();
+
+  if (shouldDebug()) {
+    console.info('[ai.explanation_evaluator] start', {
+      evalId,
+      model: process.env.GEMINI_EVAL_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash',
+      topic: input.topic,
+      scopeChars: input.scopeStatement.length,
+      transcriptChars: input.transcription.length,
+      scopePreview: preview(input.scopeStatement, 180),
+      transcriptPreview: preview(input.transcription, 140),
+      hasApiKey: !!(process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY),
+    });
+  }
+
   const systemInstruction =
     'You are an expert tutor and strict evaluator.\n' +
     "Evaluate the student's explanation using the provided TOPIC and SCOPE STATEMENT.\n" +
@@ -166,10 +198,31 @@ export async function evaluateExplanationAttempt(input: {
   const text = result.response.text() ?? '';
 
   if (!text.trim()) {
+    console.error('[ai.explanation_evaluator] empty_response', { evalId });
     throw new Error('Empty response from evaluation model');
   }
 
-  const obj = tryParseJsonObject(text);
+  if (shouldDebug()) {
+    console.info('[ai.explanation_evaluator] raw_response', {
+      evalId,
+      chars: text.length,
+      preview: preview(text, 240),
+      ms: Date.now() - startedAt,
+    });
+  }
+
+  let obj: Record<string, unknown>;
+  try {
+    obj = tryParseJsonObject(text);
+  } catch (err: unknown) {
+    console.error('[ai.explanation_evaluator] parse_failed', {
+      evalId,
+      error: err instanceof Error ? err.message : String(err),
+      responsePreview: preview(text, 420),
+      ms: Date.now() - startedAt,
+    });
+    throw err;
+  }
   const scoresObj = (obj.scores ?? {}) as Record<string, unknown>;
 
   const correctness = clampScore(Number(scoresObj.correctness));
@@ -194,6 +247,25 @@ export async function evaluateExplanationAttempt(input: {
   const shortFeedback = typeof obj.shortFeedback === 'string' ? obj.shortFeedback.trim() : '';
   const detailedFeedback =
     typeof obj.detailedFeedback === 'string' ? obj.detailedFeedback.trim() : '';
+
+  if (shouldDebug()) {
+    console.info('[ai.explanation_evaluator] parsed', {
+      evalId,
+      overallScore,
+      correctness,
+      clarity,
+      depth,
+      relevance,
+      structure,
+      strengthsCount: strengths.length,
+      improvementsCount: improvements.length,
+      missingConceptsCount: missingConcepts.length,
+      learningObjectivesCount: learningObjectives.length,
+      shortFeedbackChars: shortFeedback.length,
+      detailedFeedbackChars: detailedFeedback.length,
+      ms: Date.now() - startedAt,
+    });
+  }
 
   return {
     overallScore,

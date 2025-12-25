@@ -5,10 +5,17 @@
  */
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { randomUUID } from 'crypto';
 
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { CREDIT_COSTS } from '@/lib/constants';
 import { evaluateExplanationAttempt } from '@/server/ai/explanation-evaluator';
+
+function preview(text: string, max = 160): string {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= max) return cleaned;
+  return `${cleaned.slice(0, max)}…`;
+}
 
 export const explanationRouter = createTRPCRouter({
   /**
@@ -28,6 +35,21 @@ export const explanationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const requestId = randomUUID();
+      const startedAt = Date.now();
+
+      console.info('[explanation.create] start', {
+        requestId,
+        userId: ctx.session.user.id,
+        topic: input.topic,
+        duration: input.duration,
+        hasStudySessionId: !!input.studySessionId,
+        hasScopeStatement: !!input.scopeStatement,
+        hasAudioUrl: !!input.audioUrl,
+        transcriptionChars: input.transcription.length,
+        transcriptionPreview: preview(input.transcription, 140),
+      });
+
       // Calculate credit cost based on duration
       const creditCost = Math.ceil(input.duration / 60) * CREDIT_COSTS.TRANSCRIPTION_PER_MINUTE;
 
@@ -37,6 +59,11 @@ export const explanationRouter = createTRPCRouter({
       });
 
       if (!credits || credits.balance < creditCost) {
+        console.warn('[explanation.create] insufficient_credits', {
+          requestId,
+          balance: credits?.balance ?? null,
+          required: creditCost,
+        });
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Insufficient credits. Please upgrade or purchase more credits.',
@@ -47,12 +74,20 @@ export const explanationRouter = createTRPCRouter({
       // If a StudySession isn't provided (legacy clients), create one with a basic scope.
       let studySessionId: string;
       if (input.studySessionId) {
+        console.info('[explanation.create] validate_study_session', {
+          requestId,
+          studySessionId: input.studySessionId,
+        });
         const session = await ctx.prisma.studySession.findUnique({
           where: { id: input.studySessionId },
           select: { id: true, userId: true },
         });
 
         if (!session || session.userId !== ctx.session.user.id) {
+          console.warn('[explanation.create] study_session_not_found', {
+            requestId,
+            studySessionId: input.studySessionId,
+          });
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: 'Study session not found',
@@ -61,6 +96,15 @@ export const explanationRouter = createTRPCRouter({
 
         studySessionId = session.id;
       } else {
+        console.info('[explanation.create] create_study_session', {
+          requestId,
+          topic: input.topic,
+          scopePreview: preview(
+            input.scopeStatement ??
+              `Explain the topic: ${input.topic}. Focus on the core concepts and correct reasoning.`,
+            180
+          ),
+        });
         studySessionId = (
           await ctx.prisma.studySession.create({
             data: {
@@ -78,6 +122,12 @@ export const explanationRouter = createTRPCRouter({
       const attemptNumber = input.studySessionId
         ? (await ctx.prisma.explanation.count({ where: { studySessionId } })) + 1
         : 1;
+
+      console.info('[explanation.create] attempt_number', {
+        requestId,
+        studySessionId,
+        attemptNumber,
+      });
 
       // Create explanation and deduct credits in a transaction
       const [explanation] = await ctx.prisma.$transaction([
@@ -115,9 +165,22 @@ export const explanationRouter = createTRPCRouter({
         }),
       ]);
 
+      console.info('[explanation.create] explanation_created', {
+        requestId,
+        explanationId: explanation.id,
+        studySessionId,
+        ms: Date.now() - startedAt,
+      });
+
       // Evaluate the explanation using the StudySession scope.
       // Evaluation is best-effort: if it fails, we still keep the explanation record.
       try {
+        console.info('[explanation.create] evaluation_begin', {
+          requestId,
+          explanationId: explanation.id,
+          studySessionId,
+        });
+
         const session = await ctx.prisma.studySession.findUnique({
           where: { id: studySessionId },
           select: { scopeStatement: true },
@@ -128,32 +191,78 @@ export const explanationRouter = createTRPCRouter({
           input.scopeStatement ??
           `Explain the topic: ${input.topic}. Focus on the core concepts and correct reasoning.`;
 
+        console.info('[explanation.create] evaluation_inputs', {
+          requestId,
+          explanationId: explanation.id,
+          scopeChars: scopeStatement.length,
+          scopePreview: preview(scopeStatement, 200),
+          transcriptionChars: input.transcription.length,
+        });
+
         const evaluation = await evaluateExplanationAttempt({
           topic: input.topic,
           scopeStatement,
           transcription: input.transcription,
         });
 
-        const updated = await ctx.prisma.explanation.update({
-          where: { id: explanation.id },
-          data: {
-            evalOverallScore: evaluation.overallScore,
-            evalCorrectness: evaluation.correctness,
-            evalClarity: evaluation.clarity,
-            evalDepth: evaluation.depth,
-            evalRelevance: evaluation.relevance,
-            evalStructure: evaluation.structure,
-            evalStrengths: evaluation.strengths,
-            evalImprovements: evaluation.improvements,
-            evalShortFeedback: evaluation.shortFeedback,
-            evalDetailedFeedback: evaluation.detailedFeedback,
-            evalMissingConcepts: evaluation.missingConcepts,
-            evalLearningObjectives: evaluation.learningObjectives,
-          },
+        console.info('[explanation.create] evaluation_result', {
+          requestId,
+          explanationId: explanation.id,
+          overallScore: evaluation.overallScore,
+          correctness: evaluation.correctness,
+          clarity: evaluation.clarity,
+          depth: evaluation.depth,
+          relevance: evaluation.relevance,
+          structure: evaluation.structure,
+          strengthsCount: evaluation.strengths.length,
+          improvementsCount: evaluation.improvements.length,
+          missingConceptsCount: evaluation.missingConcepts.length,
+          learningObjectivesCount: evaluation.learningObjectives.length,
+          shortFeedbackChars: evaluation.shortFeedback.length,
+          detailedFeedbackChars: evaluation.detailedFeedback.length,
         });
 
-        return updated;
-      } catch {
+        try {
+          const updated = await ctx.prisma.explanation.update({
+            where: { id: explanation.id },
+            data: {
+              evalOverallScore: evaluation.overallScore,
+              evalCorrectness: evaluation.correctness,
+              evalClarity: evaluation.clarity,
+              evalDepth: evaluation.depth,
+              evalRelevance: evaluation.relevance,
+              evalStructure: evaluation.structure,
+              evalStrengths: evaluation.strengths,
+              evalImprovements: evaluation.improvements,
+              evalShortFeedback: evaluation.shortFeedback,
+              evalDetailedFeedback: evaluation.detailedFeedback,
+              evalMissingConcepts: evaluation.missingConcepts,
+              evalLearningObjectives: evaluation.learningObjectives,
+            },
+          });
+
+          console.info('[explanation.create] evaluation_persisted', {
+            requestId,
+            explanationId: explanation.id,
+            ms: Date.now() - startedAt,
+          });
+
+          return updated;
+        } catch (err: unknown) {
+          console.error('[explanation.create] evaluation_persist_failed', {
+            requestId,
+            explanationId: explanation.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          return explanation;
+        }
+      } catch (err: unknown) {
+        console.error('[explanation.create] evaluation_failed', {
+          requestId,
+          explanationId: explanation.id,
+          error: err instanceof Error ? err.message : String(err),
+          ms: Date.now() - startedAt,
+        });
         return explanation;
       }
     }),
