@@ -344,7 +344,10 @@ export default function ExplainPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border bg-white p-4 dark:bg-slate-900">
                   <div className="text-muted-foreground text-sm">Overall</div>
-                  <div className="mt-1 text-4xl font-bold">{evaluation.overall ?? '—'}/10</div>
+                  <div className="mt-1 text-4xl font-bold">
+                    {typeof evaluation.overall === 'number' ? evaluation.overall.toFixed(1) : '—'}
+                    /10
+                  </div>
                 </div>
                 <div className="rounded-xl border bg-white p-4 dark:bg-slate-900">
                   <div className="text-muted-foreground text-sm">Short feedback</div>

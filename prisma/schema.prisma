@@ -84,7 +84,7 @@ model Explanation {
   updatedAt     DateTime @updatedAt
 
   // ===== Evaluation artifacts (filled after transcription) =====
-  evalOverallScore     Int?
+  evalOverallScore     Float?
   evalCorrectness      Int?
   evalClarity          Int?
   evalDepth            Int?

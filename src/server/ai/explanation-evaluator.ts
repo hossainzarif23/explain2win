@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { randomUUID } from 'crypto';
 
 export type ExplanationEvaluation = {
-  overallScore: number; // 1-10
+  overallScore: number; // 1-10 (rounded to 1 decimal)
   correctness: number; // 1-10
   clarity: number; // 1-10
   depth: number; // 1-10
@@ -78,6 +78,12 @@ function getEvalModel(systemInstruction: string) {
 function clampScore(value: number): number {
   if (!Number.isFinite(value)) return 1;
   return Math.min(10, Math.max(1, Math.round(value)));
+}
+
+function clampOverallScore(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  const clamped = Math.min(10, Math.max(1, value));
+  return Math.round(clamped * 10) / 10;
 }
 
 function safeStringArray(value: unknown): string[] {
@@ -171,7 +177,7 @@ export async function evaluateExplanationAttempt(input: {
       typeof obj.detailedFeedback === 'string' ? obj.detailedFeedback.trim() : '';
 
     return {
-      overallScore,
+      overallScore: clampOverallScore(overallScore),
       correctness,
       clarity,
       depth,
