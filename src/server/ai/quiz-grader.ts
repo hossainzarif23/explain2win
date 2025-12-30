@@ -31,7 +31,7 @@ function getGradingModel(systemInstruction: string) {
     systemInstruction,
     generationConfig: {
       temperature: 0,
-      maxOutputTokens: 512,
+      maxOutputTokens: 4096,
       responseMimeType: 'application/json',
     },
   });
