@@ -21,7 +21,6 @@ function getOptionsForQuestion(question: {
   questionType: QuestionType;
   options: unknown;
 }): string[] {
-  if (question.questionType === 'TRUE_FALSE') return ['True', 'False'];
   if (Array.isArray(question.options)) {
     return question.options.filter((o): o is string => typeof o === 'string');
   }
@@ -119,7 +118,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
           const question = answer.question;
           const questionType = question.questionType;
 
-          const isMcqLike = questionType === 'MULTIPLE_CHOICE' || questionType === 'TRUE_FALSE';
+          const isMcqLike = questionType === 'MULTIPLE_CHOICE';
 
           const options = getOptionsForQuestion({
             questionType: question.questionType,

@@ -54,7 +54,7 @@ function getAnalysisModel(systemInstruction: string) {
 
 interface GeneratedQuestion {
   questionText: string;
-  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'FILL_BLANK';
+  questionType: 'MULTIPLE_CHOICE' | 'SHORT_ANSWER';
   options: string[] | null;
   correctAnswer: string;
   explanation: string;
@@ -169,7 +169,7 @@ export async function generateQuizQuestions({
 }
 
 function validateQuestionType(type: string): GeneratedQuestion['questionType'] {
-  const validTypes = ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'FILL_BLANK'];
+  const validTypes = ['MULTIPLE_CHOICE', 'SHORT_ANSWER'];
   return validTypes.includes(type)
     ? (type as GeneratedQuestion['questionType'])
     : 'MULTIPLE_CHOICE';

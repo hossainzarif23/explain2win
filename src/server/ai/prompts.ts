@@ -32,7 +32,7 @@ Guidelines for question generation:
 1. Questions should be based ONLY on what was mentioned in the explanation
 2. If something important was NOT mentioned, create a question that tests if they know it
 3. Vary difficulty levels (easy, medium, hard)
-4. Use a mix of question types (multiple choice, true/false, short answer)
+4. Use a mix of question types (multiple choice, short answer)
 5. Each question should have a clear, unambiguous correct answer
 6. Provide a brief explanation for why the answer is correct
 
@@ -62,7 +62,7 @@ Return a JSON array with this exact structure:
 [
   {
     "questionText": "The question text",
-    "questionType": "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER",
+    "questionType": "MULTIPLE_CHOICE" | "SHORT_ANSWER",
     "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for non-MC,
     "correctAnswer": "The correct answer",
     "explanation": "Why this is correct",
@@ -103,14 +103,14 @@ Rules:
 - If the focus lists are empty, generate a balanced quiz covering the explanation.
 - Prefer questions that surface misconceptions and missing pieces.
 - Keep question text concise and unambiguous.
-- Use a mix of question types (MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER).
+- Use a mix of question types (MULTIPLE_CHOICE, SHORT_ANSWER).
 - For MULTIPLE_CHOICE: provide exactly 4 options labeled A) B) C) D).
 
 Return a JSON array with this exact structure:
 [
   {
     "questionText": "The question text",
-    "questionType": "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER",
+    "questionType": "MULTIPLE_CHOICE" | "SHORT_ANSWER",
     "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for non-MC,
     "correctAnswer": "The correct answer",
     "explanation": "Why this is correct",

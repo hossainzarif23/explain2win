@@ -69,11 +69,9 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
   const displayOption = (option: string) => option.replace(/^[A-D]\)\s*/i, '').trim();
 
   const options =
-    currentQuestion.questionType === 'TRUE_FALSE'
-      ? ['True', 'False']
-      : Array.isArray(currentQuestion.options)
-        ? currentQuestion.options.filter((o): o is string => typeof o === 'string')
-        : [];
+    currentQuestion.questionType === 'MULTIPLE_CHOICE' && Array.isArray(currentQuestion.options)
+      ? currentQuestion.options.filter((o): o is string => typeof o === 'string')
+      : [];
 
   return (
     <div className="mx-auto max-w-3xl py-8">
