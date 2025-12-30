@@ -79,13 +79,9 @@ export const QUIZ_GENERATION_USER_PROMPT_V2 = (input: {
   questionCount: number;
   missingConcepts?: string[];
   learningObjectives?: string[];
-  avoidQuestionThemes?: string[];
-  avoidLearningObjectives?: string[];
 }) => {
   const missingConcepts = (input.missingConcepts ?? []).filter(Boolean);
   const learningObjectives = (input.learningObjectives ?? []).filter(Boolean);
-  const avoidQuestionThemes = (input.avoidQuestionThemes ?? []).filter(Boolean);
-  const avoidLearningObjectives = (input.avoidLearningObjectives ?? []).filter(Boolean);
 
   return `
 Topic: ${input.topic}
@@ -102,12 +98,6 @@ FOCUS (prioritize these knowledge gaps and targets):
 ${missingConcepts.length ? missingConcepts.map((c) => `  - ${c}`).join('\n') : '  - (none provided)'}
 - Learning objectives to verify:
 ${learningObjectives.length ? learningObjectives.map((o) => `  - ${o}`).join('\n') : '  - (none provided)'}
-
-DIVERSITY CONSTRAINTS (avoid repeating prior attempts):
-- Do NOT reuse these learning objectives verbatim:
-${avoidLearningObjectives.length ? avoidLearningObjectives.map((o) => `  - ${o}`).join('\n') : '  - (none provided)'}
-- Do NOT ask near-duplicate questions matching these prior question themes:
-${avoidQuestionThemes.length ? avoidQuestionThemes.map((q) => `  - ${q}`).join('\n') : '  - (none provided)'}
 
 Rules:
 - If the focus lists are empty, generate a balanced quiz covering the explanation.

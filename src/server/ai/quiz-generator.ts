@@ -68,8 +68,6 @@ interface GenerateQuizParams {
   questionCount: number;
   missingConcepts?: string[];
   learningObjectives?: string[];
-  avoidQuestionThemes?: string[];
-  avoidLearningObjectives?: string[];
 }
 
 function tryParseJson(text: string): unknown {
@@ -119,8 +117,6 @@ export async function generateQuizQuestions({
   questionCount,
   missingConcepts,
   learningObjectives,
-  avoidQuestionThemes,
-  avoidLearningObjectives,
 }: GenerateQuizParams): Promise<GeneratedQuestion[]> {
   const studentTypeContext = STUDENT_TYPE_PROMPTS[studentType];
 
@@ -130,9 +126,7 @@ export async function generateQuizQuestions({
 
   const shouldUseFocus =
     (missingConcepts?.length ?? 0) > 0 ||
-    (learningObjectives?.length ?? 0) > 0 ||
-    (avoidQuestionThemes?.length ?? 0) > 0 ||
-    (avoidLearningObjectives?.length ?? 0) > 0;
+    (learningObjectives?.length ?? 0) > 0;
 
   const userPrompt = shouldUseFocus
     ? QUIZ_GENERATION_USER_PROMPT_V2({
@@ -142,8 +136,6 @@ export async function generateQuizQuestions({
         questionCount,
         missingConcepts,
         learningObjectives,
-        avoidQuestionThemes,
-        avoidLearningObjectives,
       })
     : QUIZ_GENERATION_USER_PROMPT(topic, transcription, studentType, questionCount);
 

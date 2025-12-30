@@ -103,36 +103,7 @@ export const quizRouter = createTRPCRouter({
       const missingConcepts = toStringArray(explanation.evalMissingConcepts);
       const learningObjectives = toStringArray(explanation.evalLearningObjectives);
 
-      // Diversity: pull prior question themes and objectives from previous attempts in this StudySession.
-      const [priorQuestions, priorObjectives] = await Promise.all([
-        ctx.prisma.question.findMany({
-          where: {
-            explanationRef: {
-              studySessionId: explanation.studySessionId,
-              id: { not: explanation.id },
-            },
-          },
-          select: { questionText: true },
-          orderBy: { createdAt: 'desc' },
-          take: 25,
-        }),
-        ctx.prisma.explanation.findMany({
-          where: {
-            studySessionId: explanation.studySessionId,
-            id: { not: explanation.id },
-          },
-          select: { evalLearningObjectives: true },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        }),
-      ]);
-
-      const avoidQuestionThemes = priorQuestions.map((q) => q.questionText).filter(Boolean);
-      const avoidLearningObjectives = Array.from(
-        new Set(priorObjectives.flatMap((e) => toStringArray(e.evalLearningObjectives)))
-      );
-
-      // Generate questions using AI (focused on weaknesses + diverse across attempts)
+      // Generate questions using AI (focused on weaknesses)
       const generatedQuestions = await generateQuizQuestions({
         topic: explanation.topic,
         transcription: explanation.transcription,
@@ -140,8 +111,6 @@ export const quizRouter = createTRPCRouter({
         questionCount: input.questionCount,
         missingConcepts,
         learningObjectives,
-        avoidQuestionThemes,
-        avoidLearningObjectives,
       });
 
       // Create quiz session and questions in a transaction
