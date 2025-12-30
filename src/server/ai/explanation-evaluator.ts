@@ -25,8 +25,8 @@ export type ExplanationEvaluation = {
 const WEIGHTS = {
   correctness: 0.35,
   clarity: 0.2,
-  depth: 0.2,
-  relevance: 0.15,
+  depth: 0.25,
+  relevance: 0.1,
   structure: 0.1,
 } as const;
 
