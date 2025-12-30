@@ -53,6 +53,8 @@ export default function ExplainPage() {
   const createExplanationMutation = api.explanation.create.useMutation();
   const generateQuizMutation = api.quiz.generate.useMutation();
 
+  const isContinuingStudySession = !!studySessionIdFromUrl || !!activeStudySessionId;
+
   useEffect(() => {
     const session = resumeSessionQuery.data;
     if (!session) return;
@@ -220,7 +222,7 @@ export default function ExplainPage() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               className="mt-2"
-              disabled={isRecording || isProcessing}
+              disabled={isRecording || isProcessing || isContinuingStudySession}
             />
           </CardContent>
         </Card>
@@ -240,7 +242,7 @@ export default function ExplainPage() {
               value={scopeStatement}
               onChange={(e) => setScopeStatement(e.target.value)}
               className="mt-2"
-              disabled={isRecording || isProcessing}
+              disabled={isRecording || isProcessing || isContinuingStudySession}
             />
           </CardContent>
         </Card>

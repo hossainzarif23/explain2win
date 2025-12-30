@@ -123,16 +123,12 @@ export function computeWeightedOverallScore(scores: {
   relevance: number;
   structure: number;
 }): number {
-  const raw =
-    scores.correctness * WEIGHTS.correctness +
+
+  return scores.correctness * WEIGHTS.correctness +
     scores.clarity * WEIGHTS.clarity +
     scores.depth * WEIGHTS.depth +
     scores.relevance * WEIGHTS.relevance +
     scores.structure * WEIGHTS.structure;
-
-  // "Correctness" is safety-critical: prevent a perfect score with weak factual accuracy.
-  const capped = scores.correctness <= 6 ? Math.min(raw, 7) : raw;
-  return clampScore(capped);
 }
 
 export async function evaluateExplanationAttempt(input: {

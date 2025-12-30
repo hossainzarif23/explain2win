@@ -17,6 +17,12 @@ function preview(text: string, max = 160): string {
   return `${cleaned.slice(0, max)}…`;
 }
 
+function normalizeComparable(text: string | undefined | null): string {
+  return String(text ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export const explanationRouter = createTRPCRouter({
   /**
    * Create a new explanation
@@ -73,6 +79,11 @@ export const explanationRouter = createTRPCRouter({
       // StudySession is now the canonical container for repeated attempts.
       // If a StudySession isn't provided (legacy clients), create one with a basic scope.
       let studySessionId: string;
+      let resolvedTopic = input.topic;
+      let resolvedScopeStatement =
+        input.scopeStatement ??
+        `Explain the topic: ${input.topic}. Focus on the core concepts and correct reasoning.`;
+
       if (input.studySessionId) {
         console.info('[explanation.create] validate_study_session', {
           requestId,
@@ -80,7 +91,7 @@ export const explanationRouter = createTRPCRouter({
         });
         const session = await ctx.prisma.studySession.findUnique({
           where: { id: input.studySessionId },
-          select: { id: true, userId: true },
+          select: { id: true, userId: true, topic: true, scopeStatement: true },
         });
 
         if (!session || session.userId !== ctx.session.user.id) {
@@ -94,7 +105,42 @@ export const explanationRouter = createTRPCRouter({
           });
         }
 
+        // Prevent changing topic/scope mid-session.
+        const incomingTopic = normalizeComparable(input.topic);
+        const sessionTopic = normalizeComparable(session.topic);
+        if (incomingTopic && sessionTopic && incomingTopic !== sessionTopic) {
+          console.warn('[explanation.create] topic_mismatch', {
+            requestId,
+            studySessionId: session.id,
+            incomingTopic,
+            sessionTopic,
+          });
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Cannot change topic while continuing a study session.',
+          });
+        }
+
+        if (input.scopeStatement) {
+          const incomingScope = normalizeComparable(input.scopeStatement);
+          const sessionScope = normalizeComparable(session.scopeStatement);
+          if (incomingScope && sessionScope && incomingScope !== sessionScope) {
+            console.warn('[explanation.create] scope_mismatch', {
+              requestId,
+              studySessionId: session.id,
+              incomingScopePreview: preview(incomingScope, 180),
+              sessionScopePreview: preview(sessionScope, 180),
+            });
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Cannot change scope statement while continuing a study session.',
+            });
+          }
+        }
+
         studySessionId = session.id;
+        resolvedTopic = session.topic;
+        resolvedScopeStatement = session.scopeStatement;
       } else {
         console.info('[explanation.create] create_study_session', {
           requestId,
@@ -136,7 +182,7 @@ export const explanationRouter = createTRPCRouter({
             userId: ctx.session.user.id,
             studySessionId,
             attemptNumber,
-            topic: input.topic,
+            topic: resolvedTopic,
             transcription: input.transcription,
             audioUrl: input.audioUrl,
             duration: input.duration,
@@ -153,7 +199,7 @@ export const explanationRouter = createTRPCRouter({
             creditsId: credits.id,
             amount: -creditCost,
             type: 'TRANSCRIPTION',
-            description: `Transcription for "${input.topic}" (${Math.ceil(input.duration / 60)} min)`,
+            description: `Transcription for "${resolvedTopic}" (${Math.ceil(input.duration / 60)} min)`,
           },
         }),
         ctx.prisma.userProgress.update({
@@ -181,15 +227,7 @@ export const explanationRouter = createTRPCRouter({
           studySessionId,
         });
 
-        const session = await ctx.prisma.studySession.findUnique({
-          where: { id: studySessionId },
-          select: { scopeStatement: true },
-        });
-
-        const scopeStatement =
-          session?.scopeStatement ??
-          input.scopeStatement ??
-          `Explain the topic: ${input.topic}. Focus on the core concepts and correct reasoning.`;
+        const scopeStatement = resolvedScopeStatement;
 
         console.info('[explanation.create] evaluation_inputs', {
           requestId,
@@ -200,7 +238,7 @@ export const explanationRouter = createTRPCRouter({
         });
 
         const evaluation = await evaluateExplanationAttempt({
-          topic: input.topic,
+          topic: resolvedTopic,
           scopeStatement,
           transcription: input.transcription,
         });
