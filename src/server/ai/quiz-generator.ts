@@ -27,7 +27,7 @@ function getGeminiClient(): GoogleGenerativeAI {
 }
 
 function getQuizModel(systemInstruction: string) {
-  const modelName = process.env.GEMINI_QUIZ_MODEL ?? 'gemini-3-flash';
+  const modelName = process.env.GEMINI_QUIZ_MODEL ?? 'gemini-2.5-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction,
@@ -40,7 +40,7 @@ function getQuizModel(systemInstruction: string) {
 }
 
 function getAnalysisModel(systemInstruction: string) {
-  const modelName = process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-3-flash';
+  const modelName = process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction,

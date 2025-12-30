@@ -63,7 +63,7 @@ function getGeminiClient(): GoogleGenerativeAI {
 
 function getEvalModel(systemInstruction: string) {
   const modelName =
-    process.env.GEMINI_EVAL_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-3-flash';
+    process.env.GEMINI_EVAL_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction,
@@ -147,7 +147,7 @@ export async function evaluateExplanationAttempt(input: {
   const startedAt = Date.now();
 
   const modelName =
-    process.env.GEMINI_EVAL_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-3-flash';
+    process.env.GEMINI_EVAL_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash';
 
   const toEvaluation = (jsonText: string): ExplanationEvaluation => {
     const obj = tryParseJsonObject(jsonText);
