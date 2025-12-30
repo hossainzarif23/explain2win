@@ -27,7 +27,7 @@ function getGeminiClient(): GoogleGenerativeAI {
 }
 
 function getQuizModel(systemInstruction: string) {
-  const modelName = process.env.GEMINI_QUIZ_MODEL ?? 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_QUIZ_MODEL ?? 'gemini-3-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction,
@@ -40,7 +40,7 @@ function getQuizModel(systemInstruction: string) {
 }
 
 function getAnalysisModel(systemInstruction: string) {
-  const modelName = process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-3-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction,
@@ -125,8 +125,7 @@ export async function generateQuizQuestions({
   );
 
   const shouldUseFocus =
-    (missingConcepts?.length ?? 0) > 0 ||
-    (learningObjectives?.length ?? 0) > 0;
+    (missingConcepts?.length ?? 0) > 0 || (learningObjectives?.length ?? 0) > 0;
 
   const userPrompt = shouldUseFocus
     ? QUIZ_GENERATION_USER_PROMPT_V2({

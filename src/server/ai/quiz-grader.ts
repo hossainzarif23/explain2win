@@ -24,7 +24,7 @@ function getGeminiClient(): GoogleGenerativeAI {
 
 function getGradingModel(systemInstruction: string) {
   const modelName =
-    process.env.GEMINI_GRADING_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-2.5-flash';
+    process.env.GEMINI_GRADING_MODEL ?? process.env.GEMINI_ANALYSIS_MODEL ?? 'gemini-3-flash';
 
   return getGeminiClient().getGenerativeModel({
     model: modelName,

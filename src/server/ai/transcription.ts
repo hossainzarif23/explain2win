@@ -21,7 +21,7 @@ function getGeminiClient(): GoogleGenerativeAI {
 }
 
 function getTranscriptionModel() {
-  const modelName = process.env.GEMINI_TRANSCRIBE_MODEL ?? 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_TRANSCRIBE_MODEL ?? 'gemini-3-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction:
@@ -35,7 +35,7 @@ function getTranscriptionModel() {
 }
 
 function getCleanupModel() {
-  const modelName = process.env.GEMINI_CLEANUP_MODEL ?? 'gemini-2.5-flash';
+  const modelName = process.env.GEMINI_CLEANUP_MODEL ?? 'gemini-3-flash';
   return getGeminiClient().getGenerativeModel({
     model: modelName,
     systemInstruction: TRANSCRIPTION_SYSTEM_PROMPT,
