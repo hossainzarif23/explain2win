@@ -108,9 +108,8 @@ export default function ExplainPage() {
         throw new Error(payload?.error || 'Transcription failed');
       }
 
-      const { transcription, duration: detectedDuration } = (await transcribeResponse.json()) as {
+      const { transcription } = (await transcribeResponse.json()) as {
         transcription: string;
-        duration: number;
       };
 
       // 2. Upload audio
@@ -147,7 +146,7 @@ export default function ExplainPage() {
         scopeStatement: scopeStatement.trim(),
         studySessionId: session.id,
         transcription,
-        duration: detectedDuration,
+        duration, // Use accurate timer duration from recording, not estimated from file size
         audioUrl: key, // Store S3 key, not signed URL (URLs expire)
       });
 

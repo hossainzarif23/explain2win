@@ -5,12 +5,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/server/auth/auth.config';
-import {
-  calculateAudioDuration,
-  cleanTranscription,
-  transcribeAudio,
-  validateAudioFile,
-} from '@/server/ai/transcription';
+import { cleanTranscription, transcribeAudio, validateAudioFile } from '@/server/ai/transcription';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -32,13 +27,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error ?? 'Invalid file' }, { status: 400 });
     }
 
-    const audioBuffer = await file.arrayBuffer();
-    const duration = calculateAudioDuration(audioBuffer);
-
     const raw = await transcribeAudio(file);
     const transcription = await cleanTranscription(raw);
 
-    return NextResponse.json({ transcription, duration });
+    return NextResponse.json({ transcription });
   } catch (error) {
     console.error('Transcription error:', error);
     return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });

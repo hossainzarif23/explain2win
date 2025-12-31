@@ -86,16 +86,7 @@ export async function cleanTranscription(rawTranscription: string): Promise<stri
   return cleaned || rawTranscription;
 }
 
-/**
- * Calculate transcription duration from audio buffer
- */
-export function calculateAudioDuration(audioBuffer: ArrayBuffer): number {
-  // This is a simplified calculation
-  // For WebM/Opus, actual calculation would require parsing the container
-  // We estimate based on typical bitrate (48kbps for voice)
-  const bytesPerSecond = 48000 / 8; // 6000 bytes per second
-  return Math.ceil(audioBuffer.byteLength / bytesPerSecond);
-}
+
 
 /**
  * Validate audio file

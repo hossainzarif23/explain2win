@@ -24,19 +24,31 @@ export function AudioPlayer({ src, duration, className }: AudioPlayerProps) {
     if (!audio) return;
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleLoadedMetadata = () => setTotalDuration(audio.duration);
+    
+    // Update duration when it becomes available
+    const handleDurationChange = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setTotalDuration(audio.duration);
+      }
+    };
+    
     const handleEnded = () => setIsPlaying(false);
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadedmetadata', handleDurationChange);
+    audio.addEventListener('durationchange', handleDurationChange);
     audio.addEventListener('ended', handleEnded);
+    
+    // Check if duration is already available (e.g., cached audio)
+    handleDurationChange();
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadedmetadata', handleDurationChange);
+      audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [src]); // Re-run when src changes
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -66,6 +78,10 @@ export function AudioPlayer({ src, duration, className }: AudioPlayerProps) {
   };
 
   const formatTime = (seconds: number): string => {
+    // Handle edge cases where duration is not available
+    if (!isFinite(seconds) || isNaN(seconds)) {
+      return '--:--';
+    }
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
