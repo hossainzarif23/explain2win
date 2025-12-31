@@ -20,6 +20,17 @@ import { cn } from '@/lib/utils';
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'COMPLETED';
 
+type StudySession = {
+  id: string;
+  topic: string;
+  scopeStatement: string;
+  status: string;
+  createdAt: Date;
+  completedAt: Date | null;
+  attemptsCount: number;
+  accuracy: number | null;
+};
+
 export default function StudySessionsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
@@ -36,11 +47,11 @@ export default function StudySessionsPage() {
 
   // Calculate aggregate stats
   const totalSessions = sessions.length;
-  const completedSessions = sessions.filter((s) => s.status === 'COMPLETED').length;
-  const activeSessions = sessions.filter((s) => s.status === 'ACTIVE').length;
+  const completedSessions = sessions.filter((s: StudySession) => s.status === 'COMPLETED').length;
+  const activeSessions = sessions.filter((s: StudySession) => s.status === 'ACTIVE').length;
   const avgAccuracy =
-    sessions.filter((s) => s.accuracy !== null).reduce((sum, s) => sum + (s.accuracy ?? 0), 0) /
-      (sessions.filter((s) => s.accuracy !== null).length || 1) || 0;
+    sessions.filter((s: StudySession) => s.accuracy !== null).reduce((sum: number, s: StudySession) => sum + (s.accuracy ?? 0), 0) /
+      (sessions.filter((s: StudySession) => s.accuracy !== null).length || 1) || 0;
 
   return (
     <div className="space-y-8">
@@ -146,7 +157,7 @@ export default function StudySessionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sessions.map((session) => (
+                {sessions.map((session: StudySession) => (
                   <tr
                     key={session.id}
                     className="border-b transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-900/30"
