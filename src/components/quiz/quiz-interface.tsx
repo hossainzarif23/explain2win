@@ -86,7 +86,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
   const displayOption = (option: string) => option.replace(/^[A-D]\)\s*/i, '').trim();
   const options =
     currentQuestion.questionType === 'MULTIPLE_CHOICE' && Array.isArray(currentQuestion.options)
-      ? currentQuestion.options.filter((o): o is string => typeof o === 'string')
+      ? currentQuestion.options.filter((o: unknown): o is string => typeof o === 'string')
       : [];
 
   const formatTime = (seconds: number) => {
