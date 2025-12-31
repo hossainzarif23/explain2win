@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Mic, Brain, Trophy, Settings, Award } from 'lucide-react';
+import { LayoutDashboard, Library, Mic, Brain, Trophy, Settings, Award } from 'lucide-react';
 import type { HTMLAttributes } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -19,6 +19,11 @@ const items = [
     title: 'Explain Topic',
     href: '/explain',
     icon: Mic,
+  },
+  {
+    title: 'Study Sessions',
+    href: '/study-sessions',
+    icon: Library,
   },
   {
     title: 'Question Bank',

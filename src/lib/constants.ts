@@ -88,6 +88,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   EXPLAIN: '/explain',
   QUIZ: '/quiz',
+  STUDY_SESSIONS: '/study-sessions',
   QUESTION_BANK: '/question-bank',
   PROGRESS: '/progress',
   BILLING: '/billing',
