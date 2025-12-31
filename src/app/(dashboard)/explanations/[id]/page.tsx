@@ -14,14 +14,12 @@ import { EvaluationCard } from '@/components/explanation/evaluation-card';
 import { FeedbackDisplay } from '@/components/explanation/feedback-display';
 import { cn } from '@/lib/utils';
 
-type PageParams = { id: string; explanationId: string };
+type PageParams = { id: string };
 
 export default function ExplanationDetailPage({ params }: { params: Promise<PageParams> }) {
-  const { id: studySessionId, explanationId } = use(params);
+  const { id } = use(params);
 
-  const { data: explanation, isLoading } = api.explanation.getById.useQuery({
-    id: explanationId,
-  });
+  const { data: explanation, isLoading } = api.explanation.getById.useQuery({ id });
 
   if (isLoading) {
     return <ExplanationDetailSkeleton />;
@@ -31,12 +29,14 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <p className="text-muted-foreground">Explanation not found.</p>
-        <Link href={`/study-sessions/${studySessionId}`} className="mt-4">
-          <Button variant="link">← Back to Study Session</Button>
+        <Link href="/study-sessions" className="mt-4">
+          <Button variant="link">← Back to Study Sessions</Button>
         </Link>
       </div>
     );
   }
+
+  const studySessionId = explanation.studySessionId;
 
   const strengths = Array.isArray(explanation.evalStrengths)
     ? (explanation.evalStrengths as string[])

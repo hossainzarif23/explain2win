@@ -162,7 +162,7 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
                 >
                   <td className="px-4 py-3">
                     <Link
-                      href={`/study-sessions/${session.id}/explanations/${explanation.id}`}
+                      href={`/explanations/${explanation.id}`}
                       className="font-mono text-xs text-violet-600 hover:underline dark:text-violet-400"
                     >
                       {explanation.id.slice(0, 8)}…
@@ -210,7 +210,7 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
                   </td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/study-sessions/${session.id}/explanations/${explanation.id}`}
+                      href={`/explanations/${explanation.id}`}
                     >
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <ChevronRight className="h-4 w-4" />
