@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Loader2, Chrome, Github } from 'lucide-react';
+import { Loader2, Chrome, Github, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { cn } from '@/lib/utils';
@@ -15,18 +16,83 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function UserAuthForm({ className, mode = 'login', ...props }: UserAuthFormProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [socialLoading, setSocialLoading] = React.useState<string | null>(null);
+
+  const [formData, setFormData] = React.useState({
+    name: '',
+    email: '',
+    password: '',
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.id]: e.target.value,
+    }));
+  };
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
 
-    // Simulate standard email/pass for now (Backend logic is in auth.config)
-    setTimeout(() => {
+    try {
+      if (mode === 'register') {
+        // Register new user
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Registration failed');
+        }
+
+        toast.success('Account created! Signing you in...');
+
+        // Auto sign-in after registration
+        const signInResult = await signIn('credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+
+        if (signInResult?.error) {
+          toast.error('Account created but sign-in failed. Please log in manually.');
+          router.push('/login');
+        } else {
+          router.push('/dashboard');
+          router.refresh();
+        }
+      } else {
+        // Login with credentials
+        const result = await signIn('credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+
+        if (result?.error) {
+          toast.error('Invalid email or password');
+        } else {
+          toast.success('Welcome back!');
+          router.push('/dashboard');
+          router.refresh();
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Something went wrong. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
-      toast.info('Credentials sign-in is coming soon. Please use Google or GitHub.');
-    }, 1500);
+    }
   }
 
   const handleSocialSignIn = async (provider: 'google' | 'github') => {
@@ -35,7 +101,6 @@ export function UserAuthForm({ className, mode = 'login', ...props }: UserAuthFo
       await signIn(provider, { callbackUrl: '/dashboard' });
     } catch {
       toast.error('Failed to sign in. Please try again.');
-    } finally {
       setSocialLoading(null);
     }
   };
@@ -44,6 +109,23 @@ export function UserAuthForm({ className, mode = 'login', ...props }: UserAuthFo
     <div className={cn('grid gap-6', className)} {...props}>
       <form onSubmit={onSubmit}>
         <div className="grid gap-4">
+          {mode === 'register' && (
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                type="text"
+                autoCapitalize="words"
+                autoComplete="name"
+                autoCorrect="off"
+                disabled={isLoading || !!socialLoading}
+                required
+                value={formData.name}
+                onChange={handleInputChange}
+              />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="email">Email address</Label>
             <Input
@@ -55,6 +137,8 @@ export function UserAuthForm({ className, mode = 'login', ...props }: UserAuthFo
               autoCorrect="off"
               disabled={isLoading || !!socialLoading}
               required
+              value={formData.email}
+              onChange={handleInputChange}
             />
           </div>
           <div className="grid gap-2">
@@ -63,13 +147,23 @@ export function UserAuthForm({ className, mode = 'login', ...props }: UserAuthFo
               id="password"
               type="password"
               placeholder="••••••••"
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
               disabled={isLoading || !!socialLoading}
               required
+              minLength={6}
+              value={formData.password}
+              onChange={handleInputChange}
             />
+            {mode === 'register' && (
+              <p className="text-xs text-muted-foreground">
+                Password must be at least 6 characters
+              </p>
+            )}
           </div>
-          <Button disabled={isLoading || !!socialLoading}>
+          <Button disabled={isLoading || !!socialLoading} className="w-full">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {mode === 'login' ? 'Sign In' : 'Create Account'}
+            <Mail className="mr-2 h-4 w-4" />
+            {mode === 'login' ? 'Sign In with Email' : 'Create Account'}
           </Button>
         </div>
       </form>

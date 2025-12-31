@@ -122,7 +122,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           prisma.credits.create({
             data: {
               userId: user.id,
-              balance: 50, // Free tier starts with 50 credits
+              balance: 500, // Test release: 500 credits (change back to 50 for production)
             },
           }),
         ]);
