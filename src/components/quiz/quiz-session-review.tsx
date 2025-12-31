@@ -48,7 +48,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
   if (sessionQuery.isLoading) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 py-8">
-        <div className="h-48 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900" />
+        <div className="h-48 animate-pulse rounded-2xl bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900" />
         <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
         <div className="h-48 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
       </div>
@@ -107,7 +107,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
         <Card className="overflow-hidden border-0 shadow-2xl">
           <div
             className={cn(
-              'relative bg-gradient-to-br p-8 text-center text-white',
+              'relative bg-linear-to-br p-8 text-center text-white',
               score >= 80
                 ? 'from-green-500 via-emerald-500 to-teal-600'
                 : score >= 60
@@ -188,7 +188,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
             <CardContent className="py-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg">
                     <BookOpen className="h-6 w-6" />
                   </div>
                   <div>
@@ -215,7 +215,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
                   {sessionCompleted ? (
                     <Button
                       onClick={() => router.push('/progress')}
-                      className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-lg"
+                      className="gap-2 bg-linear-to-r from-violet-600 to-fuchsia-600 shadow-lg"
                     >
                       <Trophy className="h-4 w-4" />
                       View Progress
@@ -223,7 +223,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
                   ) : (
                     <Button
                       onClick={() => router.push(`/explain?studySessionId=${studySession.id}`)}
-                      className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-lg"
+                      className="gap-2 bg-linear-to-r from-violet-600 to-fuchsia-600 shadow-lg"
                     >
                       <Zap className="h-4 w-4" />
                       Next Attempt
@@ -387,7 +387,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
                   )}
 
                   {question.explanation && (
-                    <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-900/50">
+                    <div className="rounded-lg bg-linear-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-900/50">
                       <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
                         <Zap className="h-3.5 w-3.5" />
                         Explanation
@@ -432,7 +432,7 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
         {!sessionCompleted && studySession && (
           <Button
             onClick={() => router.push(`/explain?studySessionId=${studySession.id}`)}
-            className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-lg"
+            className="gap-2 bg-linear-to-r from-violet-600 to-fuchsia-600 shadow-lg"
           >
             <RotateCcw className="h-4 w-4" />
             Try Again

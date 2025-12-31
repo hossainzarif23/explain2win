@@ -119,13 +119,13 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
         {/* Progress Bar */}
         <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
           <motion.div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 to-fuchsia-500"
+            className="absolute inset-y-0 left-0 bg-linear-to-r from-violet-500 to-fuchsia-500"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           />
           {/* Shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
         </div>
 
         {/* Question Dots */}
@@ -156,13 +156,13 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
           <Card className="overflow-hidden border-0 shadow-xl ring-1 ring-slate-200/50 dark:ring-slate-800">
-            {/* Gradient Top Border */}
-            <div className="h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
+            {/* linear Top Border */}
+            <div className="h-1 bg-linear-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
 
             {/* Question Header */}
-            <div className="bg-gradient-to-br from-slate-50 to-white px-6 py-6 dark:from-slate-900 dark:to-slate-950">
+            <div className="bg-linear-to-br from-slate-50 to-white px-6 py-6 dark:from-slate-900 dark:to-slate-950">
               <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25">
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-semibold leading-relaxed text-slate-900 dark:text-slate-100 sm:text-xl">
@@ -197,7 +197,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
                           className={cn(
                             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-all duration-200',
                             isSelected
-                              ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-md'
+                              ? 'bg-linear-to-br from-violet-500 to-fuchsia-500 text-white shadow-md'
                               : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-slate-700'
                           )}
                         >
@@ -246,7 +246,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
                 disabled={!selectedOption || isSubmitting}
                 size="lg"
                 className={cn(
-                  'gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 font-semibold shadow-lg shadow-violet-500/25 transition-all hover:from-violet-700 hover:to-fuchsia-700 hover:shadow-xl hover:shadow-violet-500/30 disabled:opacity-50',
+                  'gap-2 bg-linear-to-r from-violet-600 to-fuchsia-600 px-6 font-semibold shadow-lg shadow-violet-500/25 transition-all hover:from-violet-700 hover:to-fuchsia-700 hover:shadow-xl hover:shadow-violet-500/30 disabled:opacity-50',
                   isSubmitting && 'animate-pulse'
                 )}
               >

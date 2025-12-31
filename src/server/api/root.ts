@@ -11,6 +11,7 @@ import { progressRouter } from '@/server/api/routers/progress';
 import { billingRouter } from '@/server/api/routers/billing';
 import { questionRouter } from '@/server/api/routers/question';
 import { studySessionRouter } from '@/server/api/routers/study-session';
+import { dashboardRouter } from '@/server/api/routers/dashboard';
 
 /**
  * Main app router - combines all feature routers
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
   billing: billingRouter,
   question: questionRouter,
   studySession: studySessionRouter,
+  dashboard: dashboardRouter,
 });
 
 // Export type for client-side type inference

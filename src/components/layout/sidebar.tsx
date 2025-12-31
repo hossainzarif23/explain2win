@@ -15,31 +15,31 @@ const items = [
     href: '/dashboard',
     icon: LayoutDashboard,
   },
-  {
-    title: 'Explain Topic',
-    href: '/explain',
-    icon: Mic,
-  },
+  // {
+  //   title: 'Explain Topic',
+  //   href: '/explain',
+  //   icon: Mic,
+  // },
   {
     title: 'Study Sessions',
     href: '/study-sessions',
     icon: Library,
   },
-  {
-    title: 'Question Bank',
-    href: '/question-bank',
-    icon: Brain,
-  },
-  {
-    title: 'My Progress',
-    href: '/progress',
-    icon: Trophy,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
-  },
+  // {
+  //   title: 'Question Bank',
+  //   href: '/question-bank',
+  //   icon: Brain,
+  // },
+  // {
+  //   title: 'My Progress',
+  //   href: '/progress',
+  //   icon: Trophy,
+  // },
+  // {
+  //   title: 'Settings',
+  //   href: '/settings',
+  //   icon: Settings,
+  // },
 ];
 
 type SidebarProps = HTMLAttributes<HTMLDivElement>;
@@ -60,12 +60,12 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
         <div className="px-3 py-2">
           <div className="space-y-1">
-            <Link href="/explain">
+            {/* <Link href="/explain">
               <Button className="mb-4 w-full justify-start gap-2" size="lg">
                 <Mic className="h-4 w-4" />
                 Start Explaining
               </Button>
-            </Link>
+            </Link> */}
             <h2 className="font-heading mb-2 px-4 text-xs font-semibold tracking-tight text-slate-500 uppercase dark:text-slate-400">
               Menu
             </h2>
