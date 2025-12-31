@@ -230,7 +230,7 @@ model Subscription {
 model Credits {
   id        String   @id @default(cuid())
   userId    String   @unique
-  balance   Int      @default(50) // Free tier starts with 50 credits
+  balance   Int      @default(500) // Test release: 500 credits (change back to 50 for production)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
