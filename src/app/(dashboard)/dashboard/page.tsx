@@ -25,6 +25,17 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+type ActiveSession = {
+  id: string;
+  topic: string;
+  scopeStatement: string;
+  currentAttempt: number;
+  latestScore: number | null;
+  masteryStreak: number;
+  lastActivityAt: Date;
+  createdAt: Date;
+};
+
 export default function DashboardPage() {
   const { data, isLoading } = api.dashboard.getDashboardData.useQuery();
 
@@ -165,7 +176,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {activeSessions.slice(0, 6).map((session, idx) => (
+            {activeSessions.slice(0, 6).map((session: ActiveSession, idx: number) => (
               <ActiveSessionCard key={session.id} session={session} index={idx} />
             ))}
           </div>
