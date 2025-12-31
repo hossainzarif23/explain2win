@@ -365,7 +365,7 @@ export const explanationRouter = createTRPCRouter({
 
     // Generate fresh signed URL for audio if we have an S3 key stored
     let audioUrl = explanation.audioUrl;
-    if (audioUrl && audioUrl.startsWith('uploads/')) {
+    if (audioUrl && (audioUrl.startsWith('uploads/') || audioUrl.startsWith('audio/'))) {
       // This is an S3 key, generate a fresh signed URL
       try {
         const { getSignedUrl } = await import('@/server/storage/aws');
