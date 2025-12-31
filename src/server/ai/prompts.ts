@@ -63,7 +63,7 @@ Return a JSON array with this exact structure:
   {
     "questionText": "The question text",
     "questionType": "MULTIPLE_CHOICE" | "SHORT_ANSWER",
-    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for non-MC,
+    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for SHORT_ANSWER,
     "correctAnswer": "The correct answer",
     "explanation": "Why this is correct",
     "difficulty": "EASY" | "MEDIUM" | "HARD"
@@ -111,7 +111,7 @@ Return a JSON array with this exact structure:
   {
     "questionText": "The question text",
     "questionType": "MULTIPLE_CHOICE" | "SHORT_ANSWER",
-    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for non-MC,
+    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"] or null for SHORT_ANSWER,
     "correctAnswer": "The correct answer",
     "explanation": "Why this is correct",
     "difficulty": "EASY" | "MEDIUM" | "HARD"

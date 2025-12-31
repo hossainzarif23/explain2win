@@ -168,8 +168,8 @@ export async function generateQuizQuestions({
 }
 
 function validateQuestionType(type: string): GeneratedQuestion['questionType'] {
-  const validTypes = ['MULTIPLE_CHOICE', 'SHORT_ANSWER'];
-  return validTypes.includes(type)
+  const validTypes = ['MULTIPLE_CHOICE', 'SHORT_ANSWER'] as const;
+  return validTypes.includes(type as any)
     ? (type as GeneratedQuestion['questionType'])
     : 'MULTIPLE_CHOICE';
 }

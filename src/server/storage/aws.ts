@@ -31,14 +31,12 @@ function getS3Config() {
 
 /**
  * Uploads a buffer to AWS S3.
- *
- * Back-compat: this is intentionally still named `uploadToGCS` because older code imported it.
  */
-export async function uploadToGCS(
+export async function uploadToS3(
   buffer: Buffer,
   filename: string,
   contentType: string
-): Promise<string> {
+): Promise<{ url: string; key: string }> {
   const s3 = getS3Client();
   const { bucket } = getS3Config();
 
@@ -52,10 +50,11 @@ export async function uploadToGCS(
     })
   );
 
-  // Return a signed URL valid for 1 hour (similar to the old GCS helper behavior)
-  return getAwsSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: key }), {
+  const url = await getAwsSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: key }), {
     expiresIn: 60 * 60,
   });
+
+  return { url, key };
 }
 
 /**
