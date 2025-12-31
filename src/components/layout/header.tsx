@@ -64,7 +64,7 @@ export function Header({ user }: HeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+            {/* <DropdownMenuItem asChild>
               <Link href="/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
@@ -76,7 +76,7 @@ export function Header({ user }: HeaderProps) {
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/login' })} className="text-red-600 dark:text-red-400">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
