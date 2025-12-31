@@ -36,6 +36,18 @@ type ActiveSession = {
   createdAt: Date;
 };
 
+type MasteredSession = {
+  id: string;
+  topic: string;
+  completedAt: Date | null;
+  totalAttempts: number;
+};
+
+type WeeklyActivity = {
+  date: string;
+  explanations: number;
+};
+
 export default function DashboardPage() {
   const { data, isLoading } = api.dashboard.getDashboardData.useQuery();
 
@@ -215,7 +227,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {recentlyMastered.map((session) => (
+                  {recentlyMastered.map((session: MasteredSession) => (
                     <Link
                       key={session.id}
                       href={`/study-sessions/${session.id}`}
