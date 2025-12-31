@@ -113,7 +113,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   if (!dbSubscription) return;
 
   // Refill credits on successful payment
-  const tier = dbSubscription.tier;
+  const tier = dbSubscription.tier as keyof typeof TIER_LIMITS;
   const monthlyCredits = TIER_LIMITS[tier].monthlyCredits;
 
   if (monthlyCredits !== Infinity) {
