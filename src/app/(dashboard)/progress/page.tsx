@@ -8,6 +8,18 @@ import { api } from '@/trpc/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type TopicPerformance = {
+  topic: string;
+  averageScore: number;
+  count: number;
+};
+
+type ActivityItem = {
+  topic: string;
+  score: number;
+  createdAt: Date;
+};
+
 export default function ProgressPage() {
   const { data: stats, isLoading } = api.progress.getOverview.useQuery();
 
@@ -17,7 +29,7 @@ export default function ProgressPage() {
 
   // Transform topic performance for chart
   const chartData =
-    stats?.topicPerformance.map((item) => ({
+    stats?.topicPerformance.map((item: TopicPerformance) => ({
       topic: item.topic,
       score: Math.round(item.averageScore),
       quizzes: item.count,
@@ -112,7 +124,7 @@ export default function ProgressPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {stats?.activityHistory.map((activity, index) => (
+              {stats?.activityHistory.map((activity: ActivityItem, index: number) => (
                 <div
                   key={index}
                   className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
