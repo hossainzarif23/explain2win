@@ -363,7 +363,23 @@ export const explanationRouter = createTRPCRouter({
       });
     }
 
-    return explanation;
+    // Generate fresh signed URL for audio if we have an S3 key stored
+    let audioUrl = explanation.audioUrl;
+    if (audioUrl && audioUrl.startsWith('uploads/')) {
+      // This is an S3 key, generate a fresh signed URL
+      try {
+        const { getSignedUrl } = await import('@/server/storage/aws');
+        audioUrl = await getSignedUrl(audioUrl);
+      } catch (error) {
+        console.error('Failed to generate signed URL for audio:', error);
+        // Keep the original value as fallback
+      }
+    }
+
+    return {
+      ...explanation,
+      audioUrl,
+    };
   }),
 
   /**

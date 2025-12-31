@@ -17,6 +17,7 @@ import { api } from '@/trpc/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { cn } from '@/lib/utils';
 
 type PageParams = { id: string };
@@ -45,15 +46,16 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
 
   return (
     <div className="space-y-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Study Sessions', href: '/study-sessions' },
+          { label: session.topic },
+        ]}
+      />
+
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <Link
-            href="/study-sessions"
-            className="text-muted-foreground mb-2 inline-flex items-center gap-1 text-sm hover:text-slate-900 dark:hover:text-slate-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Study Sessions
-          </Link>
           <div className="flex items-center gap-3">
             <h2 className="font-heading text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
               {session.topic}

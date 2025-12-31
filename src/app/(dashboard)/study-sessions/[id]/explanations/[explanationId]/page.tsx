@@ -2,34 +2,16 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  CheckCircle2,
-  Clock,
-  Lightbulb,
-  ListChecks,
-  MessageSquare,
-  Mic,
-  Play,
-  Target,
-  XCircle,
-} from 'lucide-react';
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-} from 'recharts';
+import { ArrowLeft, ArrowRight, BookOpen, MessageSquare, Mic } from 'lucide-react';
 
 import { api } from '@/trpc/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { AudioPlayer } from '@/components/audio/audio-player';
+import { EvaluationCard } from '@/components/explanation/evaluation-card';
+import { FeedbackDisplay } from '@/components/explanation/feedback-display';
 import { cn } from '@/lib/utils';
 
 type PageParams = { id: string; explanationId: string };
@@ -56,14 +38,6 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
     );
   }
 
-  const evaluationData = [
-    { name: 'Correctness', value: explanation.evalCorrectness ?? 0, fill: '#8b5cf6' },
-    { name: 'Clarity', value: explanation.evalClarity ?? 0, fill: '#06b6d4' },
-    { name: 'Depth', value: explanation.evalDepth ?? 0, fill: '#10b981' },
-    { name: 'Relevance', value: explanation.evalRelevance ?? 0, fill: '#f59e0b' },
-    { name: 'Structure', value: explanation.evalStructure ?? 0, fill: '#ec4899' },
-  ];
-
   const strengths = Array.isArray(explanation.evalStrengths)
     ? (explanation.evalStrengths as string[])
     : [];
@@ -79,14 +53,17 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
 
   return (
     <div className="space-y-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Study Sessions', href: '/study-sessions' },
+          { label: explanation.studySession?.topic ?? 'Session', href: `/study-sessions/${studySessionId}` },
+          { label: `Attempt #${explanation.attemptNumber}` },
+        ]}
+      />
+
+      {/* Header */}
       <div className="space-y-1">
-        <Link
-          href={`/study-sessions/${studySessionId}`}
-          className="text-muted-foreground mb-2 inline-flex items-center gap-1 text-sm hover:text-slate-900 dark:hover:text-slate-100"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to {explanation.studySession?.topic ?? 'Study Session'}
-        </Link>
         <div className="flex items-center gap-3">
           <h2 className="font-heading text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Attempt #{explanation.attemptNumber}
@@ -111,154 +88,26 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
         </p>
       </div>
 
-      {/* Evaluation Chart */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-violet-500" />
-            Evaluation Breakdown
-          </CardTitle>
-          <CardDescription>
-            Performance across the five key dimensions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={evaluationData}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-              >
-                <XAxis type="number" domain={[0, 10]} />
-                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                  }}
-                  formatter={(value) => [`${value ?? 0}/10`, 'Score']}
-                />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                  {evaluationData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Evaluation Chart & Score */}
+      <EvaluationCard
+        scores={{
+          correctness: explanation.evalCorrectness,
+          clarity: explanation.evalClarity,
+          depth: explanation.evalDepth,
+          relevance: explanation.evalRelevance,
+          structure: explanation.evalStructure,
+        }}
+        overallScore={explanation.evalOverallScore}
+        shortFeedback={explanation.evalShortFeedback}
+      />
 
-      {/* Short Feedback */}
-      {explanation.evalShortFeedback && (
-        <Card className="border-l-4 border-l-violet-500 shadow-sm">
-          <CardContent className="py-4">
-            <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-200">
-              {explanation.evalShortFeedback}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Strengths & Improvements */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
-              <CheckCircle2 className="h-5 w-5" />
-              Strengths
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {strengths.length > 0 ? (
-              <ul className="space-y-2">
-                {strengths.map((strength, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                    <span>{strength}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground text-sm">No strengths identified yet.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-              <Lightbulb className="h-5 w-5" />
-              Areas for Improvement
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {improvements.length > 0 ? (
-              <ul className="space-y-2">
-                {improvements.map((improvement, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm">
-                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                    <span>{improvement}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground text-sm">No improvements suggested.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Missing Concepts & Learning Objectives */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <XCircle className="h-5 w-5" />
-              Missing Concepts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {missingConcepts.length > 0 ? (
-              <ul className="space-y-2">
-                {missingConcepts.map((concept, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm">
-                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <span>{concept}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground text-sm">All key concepts covered! 🎉</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-              <ListChecks className="h-5 w-5" />
-              Learning Objectives
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {learningObjectives.length > 0 ? (
-              <ul className="space-y-2">
-                {learningObjectives.map((objective, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm">
-                    <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
-                    <span>{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground text-sm">No specific objectives listed.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Feedback Display */}
+      <FeedbackDisplay
+        strengths={strengths}
+        improvements={improvements}
+        missingConcepts={missingConcepts}
+        learningObjectives={learningObjectives}
+      />
 
       {/* Transcription */}
       <Card className="shadow-sm">
@@ -271,15 +120,7 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
         </CardHeader>
         <CardContent className="space-y-4">
           {explanation.audioUrl && (
-            <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-900">
-              <div className="flex items-center gap-3">
-                <Play className="h-5 w-5 text-violet-500" />
-                <audio controls className="h-10 w-full" preload="metadata">
-                  <source src={explanation.audioUrl} type="audio/webm" />
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            </div>
+            <AudioPlayer src={explanation.audioUrl} duration={explanation.duration} />
           )}
           <div className="rounded-lg border bg-white p-4 text-sm leading-relaxed whitespace-pre-wrap dark:bg-slate-950">
             {explanation.transcription}
@@ -330,6 +171,7 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
         </Card>
       )}
 
+      {/* Navigation */}
       <div className="flex justify-between">
         <Link href={`/study-sessions/${studySessionId}`}>
           <Button variant="outline" className="gap-2">
@@ -371,8 +213,8 @@ function formatDuration(seconds: number): string {
 function ExplanationDetailSkeleton() {
   return (
     <div className="space-y-8">
+      <Skeleton className="h-4 w-64" />
       <div className="space-y-2">
-        <Skeleton className="h-4 w-40" />
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-4 w-64" />
       </div>

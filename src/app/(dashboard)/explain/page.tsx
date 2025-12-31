@@ -130,7 +130,7 @@ export default function ExplainPage() {
         throw new Error('Upload failed');
       }
 
-      const { url } = await uploadResponse.json();
+      const { key } = await uploadResponse.json();
 
       // 3. Start/resume StudySession (Option B)
       const session = activeStudySessionId
@@ -148,7 +148,7 @@ export default function ExplainPage() {
         studySessionId: session.id,
         transcription,
         duration: detectedDuration,
-        audioUrl: url,
+        audioUrl: key, // Store S3 key, not signed URL (URLs expire)
       });
 
       setExplanationId(explanation.id);
