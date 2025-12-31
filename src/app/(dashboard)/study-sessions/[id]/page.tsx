@@ -22,6 +22,27 @@ import { cn } from '@/lib/utils';
 
 type PageParams = { id: string };
 
+type Explanation = {
+  id: string;
+  attemptNumber: number;
+  topic: string;
+  duration: number;
+  evalOverallScore: number | null;
+  evalCorrectness: number | null;
+  evalClarity: number | null;
+  evalDepth: number | null;
+  evalRelevance: number | null;
+  evalStructure: number | null;
+  createdAt: Date;
+  quizSession: {
+    id: string;
+    completedAt: Date | null;
+    score: number | null;
+    totalQuestions: number;
+    correctAnswers: number;
+  } | null;
+};
+
 export default function StudySessionDetailPage({ params }: { params: Promise<PageParams> }) {
   const { id } = use(params);
 
@@ -155,7 +176,7 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
               </tr>
             </thead>
             <tbody>
-              {session.explanations.map((explanation) => (
+              {session.explanations.map((explanation: Explanation) => (
                 <tr
                   key={explanation.id}
                   className="border-b transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-900/30"
