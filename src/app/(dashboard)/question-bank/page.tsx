@@ -17,6 +17,21 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
+type Question = {
+  id: string;
+  questionText: string;
+  difficulty: string;
+  questionType: string;
+};
+
+type BankItem = {
+  id: string;
+  topic: string;
+  createdAt: Date;
+  questionCount: number;
+  questions: Question[];
+};
+
 export default function QuestionBankPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: bank, isLoading, refetch } = api.question.getBank.useQuery();
@@ -30,7 +45,7 @@ export default function QuestionBankPage() {
     },
   });
 
-  const filteredBank = bank?.filter((item) =>
+  const filteredBank = bank?.filter((item: BankItem) =>
     item.topic.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -76,7 +91,7 @@ export default function QuestionBankPage() {
           </Card>
         ) : (
           <Accordion type="single" collapsible className="w-full space-y-4 border-none">
-            {filteredBank?.map((item) => (
+            {filteredBank?.map((item: BankItem) => (
               <AccordionItem
                 key={item.id}
                 value={item.id}
@@ -101,7 +116,7 @@ export default function QuestionBankPage() {
                 <AccordionContent className="border-t px-6 py-4">
                   <div className="space-y-6">
                     <div className="grid gap-4">
-                      {item.questions.map((q) => (
+                      {item.questions.map((q: Question) => (
                         <div
                           key={q.id}
                           className="group relative rounded-lg border border-transparent bg-slate-50 p-4 transition-all hover:border-slate-200 dark:bg-slate-900 dark:hover:border-slate-800"
