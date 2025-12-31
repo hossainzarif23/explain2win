@@ -175,7 +175,7 @@ export function QuizInterface({ quizSessionId }: QuizInterfaceProps) {
             <CardContent className="space-y-3 p-6">
               {options.length > 0 ? (
                 <div className="space-y-3">
-                  {options.map((option, idx) => {
+                  {options.map((option: string, idx: number) => {
                     const isSelected = selectedOption === option;
                     const letter = String.fromCharCode(65 + idx);
 
