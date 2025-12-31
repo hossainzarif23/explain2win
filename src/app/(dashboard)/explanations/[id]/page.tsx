@@ -2,16 +2,32 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, BookOpen, MessageSquare, Mic } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Brain,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Lightbulb,
+  MessageSquare,
+  Mic,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Trophy,
+  XCircle,
+  Zap,
+} from 'lucide-react';
 
 import { api } from '@/trpc/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { AudioPlayer } from '@/components/audio/audio-player';
-import { EvaluationCard } from '@/components/explanation/evaluation-card';
-import { FeedbackDisplay } from '@/components/explanation/feedback-display';
 import { cn } from '@/lib/utils';
 
 type PageParams = { id: string };
@@ -27,16 +43,30 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
 
   if (!explanation) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-muted-foreground">Explanation not found.</p>
-        <Link href="/study-sessions" className="mt-4">
-          <Button variant="link">← Back to Study Sessions</Button>
-        </Link>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center py-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+            <XCircle className="h-8 w-8 text-slate-400" />
+          </div>
+          <p className="text-muted-foreground">Explanation not found.</p>
+          <Link href="/study-sessions">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Study Sessions
+            </Button>
+          </Link>
+        </motion.div>
       </div>
     );
   }
 
   const studySessionId = explanation.studySessionId;
+  const score = explanation.evalOverallScore ?? 0;
+  const scorePercent = (score / 10) * 100;
 
   const strengths = Array.isArray(explanation.evalStrengths)
     ? (explanation.evalStrengths as string[])
@@ -51,128 +81,370 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
     ? (explanation.evalLearningObjectives as string[])
     : [];
 
+  const getScoreColor = () => {
+    if (score >= 9) return 'from-green-500 to-emerald-600';
+    if (score >= 7) return 'from-amber-500 to-orange-600';
+    return 'from-violet-500 to-fuchsia-600';
+  };
+
+  const getScoreBg = () => {
+    if (score >= 9) return 'bg-green-500';
+    if (score >= 7) return 'bg-amber-500';
+    return 'bg-violet-500';
+  };
+
+  const dimensions = [
+    { key: 'correctness', label: 'Correctness', value: explanation.evalCorrectness, icon: CheckCircle2 },
+    { key: 'clarity', label: 'Clarity', value: explanation.evalClarity, icon: Sparkles },
+    { key: 'depth', label: 'Depth', value: explanation.evalDepth, icon: Brain },
+    { key: 'relevance', label: 'Relevance', value: explanation.evalRelevance, icon: Target },
+    { key: 'structure', label: 'Structure', value: explanation.evalStructure, icon: TrendingUp },
+  ];
+
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8 py-4">
       {/* Breadcrumbs */}
-      <Breadcrumbs
-        items={[
-          { label: 'Study Sessions', href: '/study-sessions' },
-          { label: explanation.studySession?.topic ?? 'Session', href: `/study-sessions/${studySessionId}` },
-          { label: `Attempt #${explanation.attemptNumber}` },
-        ]}
-      />
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Breadcrumbs
+          items={[
+            { label: 'Study Sessions', href: '/study-sessions' },
+            { label: explanation.studySession?.topic ?? 'Session', href: `/study-sessions/${studySessionId}` },
+            { label: `Attempt #${explanation.attemptNumber}` },
+          ]}
+        />
+      </motion.div>
 
-      {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <h2 className="font-heading text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Attempt #{explanation.attemptNumber}
-          </h2>
-          {explanation.evalOverallScore !== null && (
-            <span
-              className={cn(
-                'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold',
-                explanation.evalOverallScore >= 9
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                  : explanation.evalOverallScore >= 7
-                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-              )}
-            >
-              {explanation.evalOverallScore.toFixed(1)}/10
-            </span>
-          )}
-        </div>
-        <p className="text-muted-foreground mt-1">
-          {formatDateTime(explanation.createdAt)} • Duration: {formatDuration(explanation.duration)}
-        </p>
-      </div>
+      {/* Hero Score Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="overflow-hidden border-0 shadow-2xl">
+          <div className={cn('relative bg-gradient-to-br p-6 text-white sm:p-8', getScoreColor())}>
+            {/* Background decoration */}
+            <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
 
-      {/* Evaluation Chart & Score */}
-      <EvaluationCard
-        scores={{
-          correctness: explanation.evalCorrectness,
-          clarity: explanation.evalClarity,
-          depth: explanation.evalDepth,
-          relevance: explanation.evalRelevance,
-          structure: explanation.evalStructure,
-        }}
-        overallScore={explanation.evalOverallScore}
-        shortFeedback={explanation.evalShortFeedback}
-      />
+            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              {/* Left: Info */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                    <Brain className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white/80">Attempt #{explanation.attemptNumber}</p>
+                    <h2 className="text-xl font-bold sm:text-2xl">
+                      {explanation.studySession?.topic ?? 'Explanation'}
+                    </h2>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {formatDateTime(explanation.createdAt)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {formatDuration(explanation.duration)}
+                  </span>
+                </div>
+              </div>
 
-      {/* Feedback Display */}
-      <FeedbackDisplay
-        strengths={strengths}
-        improvements={improvements}
-        missingConcepts={missingConcepts}
-        learningObjectives={learningObjectives}
-      />
-
-      {/* Transcription */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5 text-violet-500" />
-            Your Explanation
-          </CardTitle>
-          <CardDescription>The transcription of your spoken explanation.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {explanation.audioUrl && (
-            <AudioPlayer src={explanation.audioUrl} duration={explanation.duration} />
-          )}
-          <div className="rounded-lg border bg-white p-4 text-sm leading-relaxed whitespace-pre-wrap dark:bg-slate-950">
-            {explanation.transcription}
+              {/* Right: Score */}
+              <div className="flex items-center gap-4">
+                <div className="relative h-24 w-24 sm:h-28 sm:w-28">
+                  {/* Circle background */}
+                  <svg className="h-full w-full -rotate-90">
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.2)"
+                      strokeWidth="8"
+                    />
+                    <motion.circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 45}`}
+                      initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
+                      animate={{ strokeDashoffset: 2 * Math.PI * 45 * (1 - scorePercent / 100) }}
+                      transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl font-black sm:text-4xl">{score.toFixed(1)}</span>
+                    <span className="text-xs text-white/70">out of 10</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Detailed Feedback */}
-      {explanation.evalDetailedFeedback && (
-        <Card className="shadow-sm">
+          {/* Dimension Scores */}
+          <div className="grid grid-cols-5 divide-x divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-950">
+            {dimensions.map((dim, idx) => {
+              const Icon = dim.icon;
+              const value = dim.value ?? 0;
+              return (
+                <motion.div
+                  key={dim.key}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + idx * 0.1 }}
+                  className="flex flex-col items-center gap-1 py-4"
+                >
+                  <Icon className="h-4 w-4 text-slate-400" />
+                  <span className="text-lg font-bold text-slate-900 dark:text-slate-100 sm:text-xl">
+                    {value}
+                  </span>
+                  <span className="text-[10px] text-slate-500 sm:text-xs">{dim.label}</span>
+                </motion.div>
+              );
+            })}
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Short Feedback */}
+      {explanation.evalShortFeedback && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="border-0 bg-gradient-to-br from-slate-50 to-slate-100 shadow-lg dark:from-slate-900 dark:to-slate-950">
+            <CardContent className="flex items-start gap-4 py-5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+                  AI Summary
+                </p>
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                  {explanation.evalShortFeedback}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Feedback Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="grid gap-4 md:grid-cols-2"
+      >
+        {/* Strengths */}
+        {strengths.length > 0 && (
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-green-500 to-emerald-500" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                Strengths
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-2">
+                {strengths.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Improvements */}
+        {improvements.length > 0 && (
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                Areas to Improve
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-2">
+                {improvements.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Missing Concepts */}
+        {missingConcepts.length > 0 && (
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-red-500 to-rose-500" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                  <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                </div>
+                Missing Concepts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-2">
+                {missingConcepts.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Learning Objectives */}
+        {learningObjectives.length > 0 && (
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                Learning Objectives
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-2">
+                {learningObjectives.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </motion.div>
+
+      {/* Audio & Transcription */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card className="overflow-hidden border-0 shadow-lg">
+          <div className="h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-violet-500" />
-              Detailed Feedback
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                <Mic className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              </div>
+              Your Explanation
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-              {explanation.evalDetailedFeedback}
+          <CardContent className="space-y-4">
+            {explanation.audioUrl && (
+              <AudioPlayer src={explanation.audioUrl} duration={explanation.duration} />
+            )}
+            <div className="rounded-xl border bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              {explanation.transcription}
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Detailed Feedback */}
+      {explanation.evalDetailedFeedback && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                  <MessageSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                Detailed Feedback
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
+                {explanation.evalDetailedFeedback}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Quiz Link */}
       {explanation.quizSession && (
-        <Card className="border-none bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
-          <CardContent className="flex items-center justify-between py-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                <BookOpen className="h-6 w-6" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="overflow-hidden border-0 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-2xl">
+            <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg">
+                  <Trophy className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold">Quiz Results</p>
+                  <p className="text-sm text-violet-100">
+                    Score: {explanation.quizSession.score !== null ? `${Math.round(explanation.quizSession.score)}%` : 'Not completed'} •{' '}
+                    {explanation.quizSession.correctAnswers}/{explanation.quizSession.totalQuestions} correct
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold">Quiz Results</p>
-                <p className="text-sm text-violet-100">
-                  Score: {explanation.quizSession.score !== null ? `${Math.round(explanation.quizSession.score)}%` : 'Not completed'} •{' '}
-                  {explanation.quizSession.correctAnswers}/{explanation.quizSession.totalQuestions} correct
-                </p>
-              </div>
-            </div>
-            <Link href={`/quiz/${explanation.quizSession.id}`}>
-              <Button variant="secondary" className="gap-2 bg-white text-violet-600 hover:bg-slate-100">
-                View Quiz
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+              <Link href={`/quiz/${explanation.quizSession.id}`}>
+                <Button
+                  size="lg"
+                  className="gap-2 bg-white font-semibold text-violet-600 shadow-lg hover:bg-slate-100"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  View Quiz
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7 }}
+        className="flex justify-between pt-4"
+      >
         <Link href={`/study-sessions/${studySessionId}`}>
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
@@ -181,13 +453,14 @@ export default function ExplanationDetailPage({ params }: { params: Promise<Page
         </Link>
         {explanation.studySession?.status === 'ACTIVE' && (
           <Link href={`/explain?studySessionId=${studySessionId}`}>
-            <Button className="gap-2">
+            <Button className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-lg">
+              <Zap className="h-4 w-4" />
               Next Attempt
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -212,19 +485,15 @@ function formatDuration(seconds: number): string {
 
 function ExplanationDetailSkeleton() {
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8 py-4">
       <Skeleton className="h-4 w-64" />
-      <div className="space-y-2">
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-4 w-64" />
-      </div>
-      <Skeleton className="h-80 rounded-xl" />
-      <Skeleton className="h-24 rounded-xl" />
+      <Skeleton className="h-48 rounded-2xl" />
+      <Skeleton className="h-20 rounded-2xl" />
       <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-48 rounded-xl" />
-        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-40 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
       </div>
-      <Skeleton className="h-64 rounded-xl" />
+      <Skeleton className="h-64 rounded-2xl" />
     </div>
   );
 }
