@@ -52,7 +52,10 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Webpack configuration for audio handling
+  // Turbopack configuration (Next.js 16+)
+  turbopack: {},
+
+  // Webpack configuration for audio handling (fallback when not using Turbopack)
   webpack: (config) => {
     config.module.rules.push({
       test: /\.webm$/,
