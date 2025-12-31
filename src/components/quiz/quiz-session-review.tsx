@@ -1,5 +1,6 @@
 'use client';
 
+import type { QuestionType } from '@prisma/client';
 import { motion } from 'framer-motion';
 import {
   Award,
@@ -31,11 +32,11 @@ function displayOption(option: string): string {
 }
 
 function getOptionsForQuestion(question: {
-  questionType: string;
+  questionType: QuestionType;
   options: unknown;
 }): string[] {
   if (Array.isArray(question.options)) {
-    return question.options.filter((o: unknown): o is string => typeof o === 'string');
+    return question.options.filter((o): o is string => typeof o === 'string');
   }
   return [];
 }
