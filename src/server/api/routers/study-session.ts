@@ -115,12 +115,15 @@ export const studySessionRouter = createTRPCRouter({
               topic: true,
               duration: true,
               createdAt: true,
+              transcription: true, // Needed for comparison panel diff view
+              audioUrl: true, // Needed for audio playback in comparison panel
               evalOverallScore: true,
               evalCorrectness: true,
               evalClarity: true,
               evalDepth: true,
               evalRelevance: true,
               evalStructure: true,
+
               quizSession: {
                 select: {
                   id: true,

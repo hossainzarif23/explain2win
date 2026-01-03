@@ -101,11 +101,38 @@ model Explanation {
   studySession  StudySession  @relation(fields: [studySessionId], references: [id], onDelete: Cascade)
   quizSession   QuizSession?
   questions     Question[]
+  
+  // Attempt comparison relations
+  comparisonsAsEarlier AttemptComparison[] @relation("ComparisonEarlier")
+  comparisonsAsLater   AttemptComparison[] @relation("ComparisonLater")
 
   @@index([userId])
   @@index([studySessionId])
   @@index([topic])
 }
+
+// Caches LLM-powered comparison between two explanation attempts
+model AttemptComparison {
+  id                String   @id @default(cuid())
+  earlierAttemptId  String
+  laterAttemptId    String
+  
+  // Analysis results from LLM
+  newConcepts       Json?    // string[] - concepts in later, not in earlier
+  missingConcepts   Json?    // string[] - concepts in earlier, not in later
+  dimensionAnalysis Json?    // { correctness?: string, clarity?: string, ... }
+  summary           String?  @db.Text // Overall comparison summary
+  
+  createdAt         DateTime @default(now())
+  
+  earlierAttempt    Explanation @relation("ComparisonEarlier", fields: [earlierAttemptId], references: [id], onDelete: Cascade)
+  laterAttempt      Explanation @relation("ComparisonLater", fields: [laterAttemptId], references: [id], onDelete: Cascade)
+  
+  @@unique([earlierAttemptId, laterAttemptId])
+  @@index([earlierAttemptId])
+  @@index([laterAttemptId])
+}
+
 
 model StudySession {
   id             String             @id @default(cuid())

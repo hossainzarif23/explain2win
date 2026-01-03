@@ -11,7 +11,9 @@ export const CREDIT_COSTS = {
   TRANSCRIPTION_PER_MINUTE: 1,
   QUIZ_GENERATION: 5,
   RE_QUIZ: 2,
+  ATTEMPT_COMPARISON: 1, // LLM-powered comparison between attempts
 } as const;
+
 
 // Subscription tier limits
 export const TIER_LIMITS = {
