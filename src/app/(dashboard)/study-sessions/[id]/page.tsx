@@ -1,13 +1,15 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   BookOpen,
   Calendar,
   ChevronRight,
   Clock,
+  GitCompare,
   Target,
   TrendingUp,
   Trophy,
@@ -17,8 +19,14 @@ import { api } from '@/trpc/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { cn } from '@/lib/utils';
+import {
+  AttemptRadarChart,
+  AttemptComparisonPanel,
+  ScoreDeltaBadge,
+} from '@/components/study-session';
 
 type PageParams = { id: string };
 
@@ -27,6 +35,7 @@ type Explanation = {
   attemptNumber: number;
   topic: string;
   duration: number;
+  transcription: string;
   evalOverallScore: number | null;
   evalCorrectness: number | null;
   evalClarity: number | null;
@@ -47,6 +56,41 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
   const { id } = use(params);
 
   const { data: session, isLoading } = api.studySession.getByIdWithDetails.useQuery({ id });
+
+  // State for comparison features
+  const [selectedAttemptIds, setSelectedAttemptIds] = useState<Set<string>>(new Set());
+  const [showComparisonPanel, setShowComparisonPanel] = useState(false);
+
+  // Memoized sorted explanations for easy access to previous attempt
+  const sortedExplanations = useMemo(() => {
+    if (!session?.explanations) return [];
+    return [...session.explanations].sort((a, b) => a.attemptNumber - b.attemptNumber);
+  }, [session?.explanations]);
+
+  // Get previous attempt for delta calculation
+  const getPreviousAttempt = (attemptNumber: number): Explanation | undefined => {
+    const index = sortedExplanations.findIndex((e) => e.attemptNumber === attemptNumber);
+    return index > 0 ? sortedExplanations[index - 1] : undefined;
+  };
+
+  // Handle checkbox toggle
+  const toggleAttemptSelection = (id: string) => {
+    setSelectedAttemptIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else if (next.size < 2) {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Get selected attempts for comparison
+  const selectedAttemptsArray = useMemo(
+    () => sortedExplanations.filter((e) => selectedAttemptIds.has(e.id)),
+    [sortedExplanations, selectedAttemptIds]
+  );
 
   if (isLoading) {
     return <StudySessionDetailSkeleton />;
@@ -134,21 +178,87 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
         />
       </div>
 
+      {/* Radar Chart for Score Comparison */}
+      {sortedExplanations.length > 0 && (
+        <AttemptRadarChart
+          attempts={sortedExplanations}
+          selectedAttemptNumbers={
+            selectedAttemptsArray.length > 0
+              ? selectedAttemptsArray.map((a) => a.attemptNumber)
+              : undefined
+          }
+        />
+      )}
+
+      {/* Compare Button */}
+      <AnimatePresence>
+        {selectedAttemptIds.size === 2 && !showComparisonPanel && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex justify-center"
+          >
+            <Button
+              onClick={() => setShowComparisonPanel(true)}
+              className="gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700"
+            >
+              <GitCompare className="h-4 w-4" />
+              Compare Selected Attempts
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Comparison Panel */}
+      <AnimatePresence>
+        {showComparisonPanel && selectedAttemptsArray.length === 2 && (
+          <AttemptComparisonPanel
+            attemptA={selectedAttemptsArray[0]}
+            attemptB={selectedAttemptsArray[1]}
+            onClose={() => {
+              setShowComparisonPanel(false);
+              setSelectedAttemptIds(new Set());
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <Card className="overflow-hidden shadow-sm">
         <CardHeader>
-          <CardTitle>Explanation Attempts</CardTitle>
-          <CardDescription>
-            Track your progress through each explanation attempt.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Explanation Attempts</CardTitle>
+              <CardDescription>
+                Track your progress through each explanation attempt.
+                {sortedExplanations.length >= 2 && (
+                  <span className="ml-2 text-violet-600 dark:text-violet-400">
+                    Select 2 attempts to compare.
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {selectedAttemptIds.size > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedAttemptIds(new Set())}
+              >
+                Clear Selection
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-slate-50/50 dark:bg-slate-900/50">
+                {sortedExplanations.length >= 2 && (
+                  <th className="w-10 px-4 py-3">
+                    <span className="sr-only">Select</span>
+                  </th>
+                )}
                 <th className="px-4 py-3 text-left font-medium text-slate-600 dark:text-slate-300">
-                  ID
-                </th>
-                <th className="px-4 py-3 text-center font-medium text-slate-600 dark:text-slate-300">
                   Attempt
                 </th>
                 <th className="px-4 py-3 text-center font-medium text-slate-600 dark:text-slate-300">
@@ -176,70 +286,120 @@ export default function StudySessionDetailPage({ params }: { params: Promise<Pag
               </tr>
             </thead>
             <tbody>
-              {session.explanations.map((explanation: Explanation) => (
-                <tr
-                  key={explanation.id}
-                  className="border-b transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-900/30"
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/explanations/${explanation.id}`}
-                      className="font-mono text-xs text-violet-600 hover:underline dark:text-violet-400"
-                    >
-                      {explanation.id.slice(0, 8)}…
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-center font-medium">
-                    #{explanation.attemptNumber}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <ScoreBadge score={explanation.evalOverallScore} max={10} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <ScoreBadge score={explanation.evalCorrectness} max={10} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <ScoreBadge score={explanation.evalClarity} max={10} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <ScoreBadge score={explanation.evalDepth} max={10} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <ScoreBadge score={explanation.evalRelevance} max={10} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <ScoreBadge score={explanation.evalStructure} max={10} />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {explanation.quizSession?.score !== null &&
-                    explanation.quizSession?.score !== undefined ? (
-                      <span
-                        className={cn(
-                          'font-medium',
-                          explanation.quizSession.score >= 80
-                            ? 'text-green-600 dark:text-green-400'
-                            : explanation.quizSession.score >= 60
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-red-600 dark:text-red-400'
-                        )}
-                      >
-                        {Math.round(explanation.quizSession.score)}%
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">-</span>
+              {sortedExplanations.map((explanation: Explanation) => {
+                const previousAttempt = getPreviousAttempt(explanation.attemptNumber);
+                const isSelected = selectedAttemptIds.has(explanation.id);
+
+                return (
+                  <tr
+                    key={explanation.id}
+                    className={cn(
+                      'border-b transition-colors',
+                      isSelected
+                        ? 'bg-violet-50/50 dark:bg-violet-900/20'
+                        : 'hover:bg-slate-50/50 dark:hover:bg-slate-900/30'
                     )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/explanations/${explanation.id}`}
-                    >
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                  >
+                    {sortedExplanations.length >= 2 && (
+                      <td className="px-4 py-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleAttemptSelection(explanation.id)}
+                          disabled={!isSelected && selectedAttemptIds.size >= 2}
+                        />
+                      </td>
+                    )}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">#{explanation.attemptNumber}</span>
+                        <span className="text-xs text-slate-400">
+                          {formatDate(explanation.createdAt)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        <ScoreBadge score={explanation.evalOverallScore} max={10} />
+                        <ScoreDeltaBadge
+                          current={explanation.evalOverallScore}
+                          previous={previousAttempt?.evalOverallScore ?? null}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        <ScoreBadge score={explanation.evalCorrectness} max={10} />
+                        <ScoreDeltaBadge
+                          current={explanation.evalCorrectness}
+                          previous={previousAttempt?.evalCorrectness ?? null}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        <ScoreBadge score={explanation.evalClarity} max={10} />
+                        <ScoreDeltaBadge
+                          current={explanation.evalClarity}
+                          previous={previousAttempt?.evalClarity ?? null}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        <ScoreBadge score={explanation.evalDepth} max={10} />
+                        <ScoreDeltaBadge
+                          current={explanation.evalDepth}
+                          previous={previousAttempt?.evalDepth ?? null}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        <ScoreBadge score={explanation.evalRelevance} max={10} />
+                        <ScoreDeltaBadge
+                          current={explanation.evalRelevance}
+                          previous={previousAttempt?.evalRelevance ?? null}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center">
+                        <ScoreBadge score={explanation.evalStructure} max={10} />
+                        <ScoreDeltaBadge
+                          current={explanation.evalStructure}
+                          previous={previousAttempt?.evalStructure ?? null}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {explanation.quizSession?.score !== null &&
+                      explanation.quizSession?.score !== undefined ? (
+                        <span
+                          className={cn(
+                            'font-medium',
+                            explanation.quizSession.score >= 80
+                              ? 'text-green-600 dark:text-green-400'
+                              : explanation.quizSession.score >= 60
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-red-600 dark:text-red-400'
+                          )}
+                        >
+                          {Math.round(explanation.quizSession.score)}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link href={`/explanations/${explanation.id}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -279,6 +439,13 @@ function ScoreBadge({ score, max }: { score: number | null; max: number }) {
       {typeof score === 'number' && score % 1 !== 0 ? score.toFixed(1) : score}
     </span>
   );
+}
+
+function formatDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function formatDateTime(date: Date | string): string {
@@ -342,6 +509,7 @@ function StudySessionDetailSkeleton() {
           <Skeleton key={i} className="h-28 rounded-xl" />
         ))}
       </div>
+      <Skeleton className="h-80 rounded-xl" />
       <Skeleton className="h-96 rounded-xl" />
     </div>
   );
