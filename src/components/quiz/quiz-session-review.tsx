@@ -429,15 +429,6 @@ export function QuizSessionReview({ quizSessionId }: { quizSessionId: string }) 
           <BookOpen className="h-4 w-4" />
           All Sessions
         </Button>
-        {!sessionCompleted && studySession && (
-          <Button
-            onClick={() => router.push(`/explain?studySessionId=${studySession.id}`)}
-            className="gap-2 bg-linear-to-r from-violet-600 to-fuchsia-600 shadow-lg"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Try Again
-          </Button>
-        )}
       </motion.div>
     </div>
   );
