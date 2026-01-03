@@ -36,7 +36,7 @@ export const explanationRouter = createTRPCRouter({
         scopeStatement: z.string().min(1).max(2000).optional(),
         studySessionId: z.string().optional(),
         transcription: z.string().min(10),
-        audioUrl: z.string().url().optional(),
+        audioUrl: z.string().optional(), // Can be S3 key or full URL
         duration: z.number().min(1), // Duration in seconds
       })
     )
