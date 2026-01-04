@@ -31,6 +31,7 @@ model User {
   preferences   UserPreferences?
   subscription  Subscription?
   credits       Credits?
+  topicNodes    TopicNode[]
 }
 
 model Account {
@@ -146,6 +147,7 @@ model StudySession {
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   explanations Explanation[]
+  topicNode    TopicNode?
 
   @@index([userId])
   @@index([topic])
@@ -322,4 +324,58 @@ enum UsageType {
 enum StudySessionStatus {
   ACTIVE
   COMPLETED
+}
+
+// ==================== KNOWLEDGE GRAPH ====================
+
+model TopicNode {
+  id              String   @id @default(cuid())
+  userId          String
+  topic           String
+  normalizedTopic String   // Lowercase, trimmed for matching
+  masteryLevel    Float    @default(0) // 0-1 based on avg quiz scores
+  studySessionId  String?  @unique     // Link to session if mastered
+  isExplored      Boolean  @default(false) // User has a session for this
+  isSuggested     Boolean  @default(false) // AI suggested, not yet studied
+  
+  // Visual positioning (optional, for persisting layout)
+  positionX       Float?
+  positionY       Float?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySession    StudySession? @relation(fields: [studySessionId], references: [id], onDelete: SetNull)
+  
+  // Graph edges
+  outgoingEdges   TopicRelation[] @relation("FromNode")
+  incomingEdges   TopicRelation[] @relation("ToNode")
+  
+  @@unique([userId, normalizedTopic])
+  @@index([userId])
+  @@index([isExplored])
+}
+
+model TopicRelation {
+  id               String       @id @default(cuid())
+  fromNodeId       String
+  toNodeId         String
+  relationshipType RelationType @default(RELATED)
+  strength         Float        @default(0.5) // 0-1, how strongly related
+  
+  createdAt        DateTime @default(now())
+  
+  fromNode         TopicNode @relation("FromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode           TopicNode @relation("ToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+  
+  @@unique([fromNodeId, toNodeId])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+}
+
+enum RelationType {
+  PREREQUISITE  // fromNode is a prerequisite for toNode
+  RELATED       // Topics are related
+  SUBTOPIC      // toNode is a subtopic of fromNode
 }

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
+import { extractRelatedTopics } from '@/server/ai/topic-extractor';
 
 export const studySessionRouter = createTRPCRouter({
   /**
@@ -257,4 +258,153 @@ export const studySessionRouter = createTRPCRouter({
         },
       });
     }),
+
+  /**
+   * Complete a study session and trigger knowledge graph update
+   */
+  complete: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      // Get session with all explanations
+      const session = await ctx.prisma.studySession.findFirst({
+        where: { id: input.id, userId: ctx.session.user.id },
+        include: {
+          explanations: {
+            orderBy: { evalOverallScore: 'desc' },
+            select: {
+              id: true,
+              transcription: true,
+              evalOverallScore: true,
+            },
+          },
+        },
+      });
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Study session not found',
+        });
+      }
+
+      if (session.status === 'COMPLETED') {
+        return { success: true, message: 'Session already completed' };
+      }
+
+      // Mark session as completed
+      await ctx.prisma.studySession.update({
+        where: { id: input.id },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+        },
+      });
+
+      // Find best attempt (highest overall score)
+      const bestAttempt = session.explanations[0];
+      if (!bestAttempt?.transcription) {
+        return { success: true, message: 'Session completed, no transcription for graph' };
+      }
+
+      // Create/update TopicNode for this session
+      // Note: evalOverallScore is 0-10, so mastery = score / 10
+      const normalizedTopic = session.topic.toLowerCase().trim();
+      const masteryLevel = bestAttempt.evalOverallScore
+        ? Math.min(1, bestAttempt.evalOverallScore / 10)
+        : 0.5;
+
+
+      const topicNode = await ctx.prisma.topicNode.upsert({
+        where: {
+          userId_normalizedTopic: {
+            userId: ctx.session.user.id,
+            normalizedTopic,
+          },
+        },
+        update: {
+          masteryLevel,
+          studySessionId: input.id,
+          isExplored: true,
+          isSuggested: false,
+        },
+        create: {
+          userId: ctx.session.user.id,
+          topic: session.topic,
+          normalizedTopic,
+          masteryLevel,
+          studySessionId: input.id,
+          isExplored: true,
+          isSuggested: false,
+        },
+      });
+
+      // Extract related topics from best attempt (AI call)
+      try {
+        const { relatedTopics } = await extractRelatedTopics({
+          mainTopic: session.topic,
+          transcription: bestAttempt.transcription,
+          scopeStatement: session.scopeStatement,
+        });
+
+        // Create edges to related topics
+        for (const related of relatedTopics) {
+          const relatedNormalized = related.topic.toLowerCase().trim();
+
+          // Find or create the related topic node
+          let relatedNode = await ctx.prisma.topicNode.findUnique({
+            where: {
+              userId_normalizedTopic: {
+                userId: ctx.session.user.id,
+                normalizedTopic: relatedNormalized,
+              },
+            },
+          });
+
+          if (!relatedNode) {
+            relatedNode = await ctx.prisma.topicNode.create({
+              data: {
+                userId: ctx.session.user.id,
+                topic: related.topic,
+                normalizedTopic: relatedNormalized,
+                isExplored: false,
+                isSuggested: true,
+              },
+            });
+          }
+
+          // Create edge if doesn't exist
+          const existingEdge = await ctx.prisma.topicRelation.findUnique({
+            where: {
+              fromNodeId_toNodeId: {
+                fromNodeId: topicNode.id,
+                toNodeId: relatedNode.id,
+              },
+            },
+          });
+
+          if (!existingEdge) {
+            await ctx.prisma.topicRelation.create({
+              data: {
+                fromNodeId: topicNode.id,
+                toNodeId: relatedNode.id,
+                relationshipType: related.relationshipType,
+                strength: related.strength,
+              },
+            });
+          }
+        }
+
+        return {
+          success: true,
+          message: `Session completed. Added ${relatedTopics.length} related topics to knowledge graph.`,
+        };
+      } catch (error) {
+        console.error('Failed to extract related topics:', error);
+        return {
+          success: true,
+          message: 'Session completed. Knowledge graph update failed.',
+        };
+      }
+    }),
 });
+

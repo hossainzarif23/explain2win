@@ -13,6 +13,7 @@ import { questionRouter } from '@/server/api/routers/question';
 import { studySessionRouter } from '@/server/api/routers/study-session';
 import { dashboardRouter } from '@/server/api/routers/dashboard';
 import { comparisonRouter } from '@/server/api/routers/comparison';
+import { knowledgeGraphRouter } from '@/server/api/routers/knowledgeGraph';
 
 /**
  * Main app router - combines all feature routers
@@ -27,7 +28,9 @@ export const appRouter = createTRPCRouter({
   studySession: studySessionRouter,
   dashboard: dashboardRouter,
   comparison: comparisonRouter,
+  knowledgeGraph: knowledgeGraphRouter,
 });
+
 
 
 // Export type for client-side type inference
