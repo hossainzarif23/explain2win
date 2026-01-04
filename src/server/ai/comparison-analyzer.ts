@@ -8,17 +8,20 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 let geminiClient: GoogleGenerativeAI | null = null;
 
-function getGeminiClient(): GoogleGenerativeAI {
-  if (geminiClient) return geminiClient;
-
-  const apiKey = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+function getGeminiApiKey(): string {
+  const key = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
+  if (!key) {
     throw new Error('Missing Gemini API key (set GOOGLE_API_KEY or GEMINI_API_KEY)');
   }
+  return key;
+}
 
-  geminiClient = new GoogleGenerativeAI(apiKey);
+function getGeminiClient(): GoogleGenerativeAI {
+  if (geminiClient) return geminiClient;
+  geminiClient = new GoogleGenerativeAI(getGeminiApiKey());
   return geminiClient;
 }
+
 
 export interface DimensionAnalysis {
   correctness?: string;
@@ -171,12 +174,18 @@ export async function analyzeAttemptComparison(
     systemInstruction: SYSTEM_PROMPT,
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 16384,
       responseMimeType: 'application/json',
     },
   });
 
   const userPrompt = buildUserPrompt(input);
+  
+  // Debug logging
+  const apiKey = getGeminiApiKey();
+  console.log('[Comparison] API Key present:', !!apiKey, 'length:', apiKey.length);
+  console.log('[Comparison] Using model:', process.env.GEMINI_COMPARISON_MODEL ?? 'gemini-2.5-flash');
+  console.log('[Comparison] Prompt length:', userPrompt.length, 'chars');
   
   // Retry logic with exponential backoff for rate limits
   const maxRetries = 3;
@@ -184,8 +193,10 @@ export async function analyzeAttemptComparison(
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      console.log(`[Comparison] Attempt ${attempt + 1}/${maxRetries}...`);
       const result = await model.generateContent(userPrompt);
       const content = result.response.text();
+
 
       if (!content) {
         throw new Error('Empty response from comparison analysis');
