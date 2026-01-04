@@ -174,7 +174,7 @@ export async function analyzeAttemptComparison(
     systemInstruction: SYSTEM_PROMPT,
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 16384,
+      maxOutputTokens: 65536,
       responseMimeType: 'application/json',
     },
   });
