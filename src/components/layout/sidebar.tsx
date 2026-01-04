@@ -11,6 +11,7 @@ import {
   Sparkles,
   Zap,
   Loader2,
+  Brain,
 } from 'lucide-react';
 import type { HTMLAttributes } from 'react';
 
@@ -35,6 +36,12 @@ const items = [
     href: '/study-sessions',
     icon: Library,
   },
+  {
+    title: 'Knowledge Graph',
+    href: '/knowledge-graph',
+    icon: Brain,
+  },
+
   // {
   //   title: 'Question Bank',
   //   href: '/question-bank',
