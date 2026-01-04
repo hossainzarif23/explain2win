@@ -8,20 +8,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 let geminiClient: GoogleGenerativeAI | null = null;
 
-function getGeminiApiKey(): string {
-  const key = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new Error('Missing Gemini API key (set GOOGLE_API_KEY or GEMINI_API_KEY)');
-  }
-  return key;
-}
-
 function getGeminiClient(): GoogleGenerativeAI {
   if (geminiClient) return geminiClient;
-  geminiClient = new GoogleGenerativeAI(getGeminiApiKey());
+
+  const apiKey = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing Gemini API key (set GOOGLE_API_KEY or GEMINI_API_KEY)');
+  }
+
+  geminiClient = new GoogleGenerativeAI(apiKey);
   return geminiClient;
 }
-
 
 export interface DimensionAnalysis {
   correctness?: string;
@@ -171,6 +168,7 @@ export async function analyzeAttemptComparison(
 ): Promise<ComparisonResult> {
   const model = getGeminiClient().getGenerativeModel({
     model: process.env.GEMINI_COMPARISON_MODEL ?? 'gemini-2.5-flash',
+
     systemInstruction: SYSTEM_PROMPT,
     generationConfig: {
       temperature: 0.3,
@@ -180,56 +178,24 @@ export async function analyzeAttemptComparison(
   });
 
   const userPrompt = buildUserPrompt(input);
-  
-  // Debug logging
-  const apiKey = getGeminiApiKey();
-  console.log('[Comparison] API Key present:', !!apiKey, 'length:', apiKey.length);
-  console.log('[Comparison] Using model:', process.env.GEMINI_COMPARISON_MODEL ?? 'gemini-2.5-flash');
-  console.log('[Comparison] Prompt length:', userPrompt.length, 'chars');
-  
-  // Retry logic with exponential backoff for rate limits
-  const maxRetries = 3;
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      console.log(`[Comparison] Attempt ${attempt + 1}/${maxRetries}...`);
-      const result = await model.generateContent(userPrompt);
-      const content = result.response.text();
+  const result = await model.generateContent(userPrompt);
+  const content = result.response.text();
 
-
-      if (!content) {
-        throw new Error('Empty response from comparison analysis');
-      }
-
-      const parsed = tryParseJson(content) as Record<string, unknown>;
-
-      return {
-        newConcepts: safeStringArray(parsed.newConcepts),
-        missingConcepts: safeStringArray(parsed.missingConcepts),
-        dimensionAnalysis: safeDimensionAnalysis(parsed.dimensionAnalysis),
-        summary: typeof parsed.summary === 'string' ? parsed.summary : '',
-      };
-    } catch (error) {
-      lastError = error as Error;
-      const errorMessage = lastError.message || '';
-      
-      // Check if it's a rate limit error (429)
-      if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests')) {
-        const waitTimes = [5000, 15000, 30000]; // 5s, 15s, 30s
-        const waitTime = waitTimes[attempt] ?? 30000;
-        console.log(`Rate limited. Retrying in ${waitTime / 1000}s (attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-
-      
-      // For other errors, throw immediately
-      throw error;
-    }
+  if (!content) {
+    throw new Error('Empty response from comparison analysis');
   }
 
-  // If all retries failed
-  throw lastError || new Error('Failed to generate comparison after retries');
-}
+  try {
+    const parsed = tryParseJson(content) as Record<string, unknown>;
 
+    return {
+      newConcepts: safeStringArray(parsed.newConcepts),
+      missingConcepts: safeStringArray(parsed.missingConcepts),
+      dimensionAnalysis: safeDimensionAnalysis(parsed.dimensionAnalysis),
+      summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+    };
+  } catch (error) {
+    console.error('Failed to parse comparison analysis:', error);
+    throw new Error('Failed to parse comparison analysis response');
+  }
+}
