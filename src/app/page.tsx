@@ -29,9 +29,7 @@ export default function Home() {
       <main className="flex-1">
         <section className="space-y-6 pt-6 pb-8 md:pt-10 md:pb-12 lg:py-32">
           <div className="container flex max-w-5xl flex-col items-center gap-4 text-center">
-            <a className="bg-muted rounded-2xl px-4 py-1.5 text-sm font-medium" href="#">
-              Follow along on Twitter
-            </a>
+
             <h1 className="font-heading text-3xl font-bold sm:text-5xl md:text-6xl lg:text-7xl">
               Learn by teaching.
               <br />
@@ -109,45 +107,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="border-t py-12 bg-slate-50 dark:bg-slate-950/20">
-        <div className="container flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex flex-col gap-2">
-            <div className="text-primary flex items-center gap-2 text-xl font-bold">
-              <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
-                <Mic className="h-5 w-5" />
-              </div>
-              {APP_NAME}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Master any subject through the power of explaining.
-            </p>
-          </div>
-          <div className="flex gap-12">
-            <div className="flex flex-col gap-3">
-              <p className="font-bold text-sm">Product</p>
-              <Link href="#features" className="text-sm text-muted-foreground hover:text-primary">Features</Link>
-              <Link href="/pricing" className="text-sm text-muted-foreground hover:text-primary">Pricing</Link>
-            </div>
-            <div className="flex flex-col gap-3">
-              <p className="font-bold text-sm">Company</p>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">About</Link>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">Contact</Link>
-            </div>
-            <div className="flex flex-col gap-3">
-              <p className="font-bold text-sm">Legal</p>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">Privacy</Link>
-              <Link href="#" className="text-sm text-muted-foreground hover:text-primary">Terms</Link>
-            </div>
-          </div>
-        </div>
-        <div className="container mt-12 pt-8 border-t flex justify-between items-center text-xs text-muted-foreground">
-          <p>© 2025 Explain2Win Inc. Built with AI.</p>
-          <div className="flex gap-4">
-             <Link href="#" className="hover:text-primary">Twitter</Link>
-             <Link href="#" className="hover:text-primary">GitHub</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
