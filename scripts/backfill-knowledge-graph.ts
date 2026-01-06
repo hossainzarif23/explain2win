@@ -133,7 +133,7 @@ async function processSession(session: {
 }) {
   const normalizedTopic = session.topic.toLowerCase().trim();
 
-  // Check if already processed
+  // Check if node exists
   const existing = await prisma.topicNode.findUnique({
     where: {
       userId_normalizedTopic: {
@@ -141,12 +141,10 @@ async function processSession(session: {
         normalizedTopic,
       },
     },
+    include: {
+      outgoingEdges: { select: { id: true } },
+    },
   });
-
-  if (existing) {
-    console.log(`   ⏭️ Already exists, skipping`);
-    return { created: false, edges: 0 };
-  }
 
   // Find best attempt (highest score)
   const bestAttempt = session.explanations
@@ -155,18 +153,42 @@ async function processSession(session: {
 
   if (!bestAttempt?.transcription) {
     console.log(`   ⚠️ No transcription found`);
-    return { created: false, edges: 0 };
+    return { created: false, fixed: false, edges: 0 };
   }
 
   // evalOverallScore is 0-10, so mastery = score / 10
-  // If score >= 9, that's 90%+ mastery
   const masteryLevel = bestAttempt.evalOverallScore
     ? Math.min(1, bestAttempt.evalOverallScore / 10)
     : 0.5;
 
-  // Create main topic node
-  const topicNode = await prisma.topicNode.create({
-    data: {
+  // Check if fully functional (has node, has edges, linked to session)
+  if (existing) {
+    const hasEdges = existing.outgoingEdges.length > 0;
+    const isLinked = existing.studySessionId === session.id;
+    
+    if (hasEdges && isLinked) {
+      console.log(`   ⏭️ Already functional (${existing.outgoingEdges.length} edges), skipping`);
+      return { created: false, fixed: false, edges: 0 };
+    }
+    
+    console.log(`   🔧 Fixing broken node (edges: ${existing.outgoingEdges.length}, linked: ${isLinked})`);
+  }
+
+  // Upsert node (creates if new, updates if existing but broken)
+  const topicNode = await prisma.topicNode.upsert({
+    where: {
+      userId_normalizedTopic: {
+        userId: session.userId,
+        normalizedTopic,
+      },
+    },
+    update: {
+      masteryLevel,
+      studySessionId: session.id,
+      isExplored: true,
+      isSuggested: false,
+    },
+    create: {
       userId: session.userId,
       topic: session.topic,
       normalizedTopic,
@@ -177,7 +199,15 @@ async function processSession(session: {
     },
   });
 
-  console.log(`   ✅ Created node (mastery: ${Math.round(masteryLevel * 100)}%)`);
+  const wasCreated = !existing;
+  console.log(`   ${wasCreated ? '✅ Created' : '🔧 Updated'} node (mastery: ${Math.round(masteryLevel * 100)}%)`);
+
+  // Check if we need to create edges
+  const existingEdgeCount = existing?.outgoingEdges.length ?? 0;
+  if (existingEdgeCount > 0) {
+    console.log(`   ⏭️ Edges already exist (${existingEdgeCount}), skipping AI extraction`);
+    return { created: wasCreated, fixed: !wasCreated, edges: 0 };
+  }
 
   // Extract related topics
   const relatedTopics = await extractRelatedTopics(
@@ -216,7 +246,7 @@ async function processSession(session: {
       });
     }
 
-    // Create edge
+    // Create edge if doesn't exist
     const existingEdge = await prisma.topicRelation.findUnique({
       where: {
         fromNodeId_toNodeId: {
@@ -240,7 +270,7 @@ async function processSession(session: {
   }
 
   console.log(`   🔗 Created ${edgesCreated} edges`);
-  return { created: true, edges: edgesCreated };
+  return { created: wasCreated, fixed: !wasCreated, edges: edgesCreated };
 }
 
 async function main() {
@@ -264,7 +294,8 @@ async function main() {
 
   console.log(`\n📊 Found ${sessions.length} completed sessions\n`);
 
-  let totalNodes = 0;
+  let totalCreated = 0;
+  let totalFixed = 0;
   let totalEdges = 0;
   let skipped = 0;
 
@@ -275,14 +306,17 @@ async function main() {
     try {
       const result = await processSession(session);
       if (result.created) {
-        totalNodes++;
+        totalCreated++;
+        totalEdges += result.edges;
+      } else if (result.fixed) {
+        totalFixed++;
         totalEdges += result.edges;
       } else {
         skipped++;
       }
 
       // Rate limiting: 1.5 second delay between AI calls
-      if (i < sessions.length - 1) {
+      if (i < sessions.length - 1 && (result.created || result.fixed)) {
         await new Promise((r) => setTimeout(r, 1500));
       }
     } catch (error) {
@@ -292,12 +326,14 @@ async function main() {
 
   console.log('\n' + '='.repeat(50));
   console.log('\n📈 Summary:');
-  console.log(`   Nodes created: ${totalNodes}`);
+  console.log(`   Nodes created: ${totalCreated}`);
+  console.log(`   Nodes fixed: ${totalFixed}`);
   console.log(`   Edges created: ${totalEdges}`);
-  console.log(`   Skipped (existing): ${skipped}`);
+  console.log(`   Skipped (already functional): ${skipped}`);
   console.log('\n✅ Backfill complete!');
 }
 
 main()
   .catch(console.error)
   .finally(() => prisma.$disconnect());
+
