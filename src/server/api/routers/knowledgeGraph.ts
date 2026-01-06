@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
+import { generateScope } from '@/server/ai/scope-generator';
 
 export const knowledgeGraphRouter = createTRPCRouter({
   /**
@@ -234,4 +235,26 @@ export const knowledgeGraphRouter = createTRPCRouter({
       totalEdges,
     };
   }),
+
+  /**
+   * Generate AI-powered scope statement for starting a study session
+   */
+  suggestScope: protectedProcedure
+    .input(
+      z.object({
+        topic: z.string().min(1),
+        parentTopic: z.string().optional(),
+        relationshipType: z.enum(['PREREQUISITE', 'RELATED', 'SUBTOPIC']).optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const result = await generateScope({
+        topic: input.topic,
+        parentTopic: input.parentTopic,
+        relationshipType: input.relationshipType,
+      });
+
+      return result;
+    }),
 });
+
