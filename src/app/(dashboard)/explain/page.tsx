@@ -321,28 +321,28 @@ export default function ExplainPage() {
                 </Button>
               )}
 
-              {!isRecording && mediaBlob && (
-                <>
-                  <Button variant="outline" size="lg" onClick={handleDiscard}>
-                    Discard
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-violet-600 hover:bg-violet-700"
-                    onClick={handleSubmit}
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="h-4 w-4" /> Evaluate Explanation
-                      </>
-                    )}
-                  </Button>
-                </>
+              {!isRecording && mediaBlob && !evaluation && !isProcessing && (
+                <Button variant="outline" size="lg" onClick={handleDiscard}>
+                  Discard
+                </Button>
+              )}
+              {!isRecording && mediaBlob && !evaluation && (
+                <Button
+                  size="lg"
+                  className="gap-2 bg-violet-600 hover:bg-violet-700"
+                  onClick={handleSubmit}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4" /> Evaluate Explanation
+                    </>
+                  )}
+                </Button>
               )}
             </div>
           </CardContent>
