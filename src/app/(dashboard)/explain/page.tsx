@@ -236,7 +236,7 @@ export default function ExplainPage() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               className="mt-2"
-              disabled={isRecording || isProcessing || isContinuingStudySession}
+              disabled={isRecording || isProcessing || isContinuingStudySession || fromGraph}
             />
           </CardContent>
         </Card>
