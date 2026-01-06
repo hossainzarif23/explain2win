@@ -24,17 +24,37 @@ interface ScopeGeneratorOutput {
   learningObjectives: string[];
 }
 
-const SYSTEM_PROMPT = `You are an expert educational content designer. Generate a focused, actionable scope statement for a study session.
+const SYSTEM_PROMPT = `You are an expert educational content designer creating scope statements for study sessions where students learn by TEACHING/EXPLAINING topics.
 
-The scope should:
-1. Be 1-2 sentences, clear and specific
-2. Focus on what the student will learn to EXPLAIN (not just understand)
-3. Be appropriate for middle school to undergrad level
-4. Connect to the parent topic if provided
+A scope statement should define HOW the student should explain the topic - the methodology, structure, and quality expectations. It should NOT describe the topic content itself.
+
+GOOD scope statement example:
+"Clearly and thoroughly describe how the system works from start to finish, explain why each part exists and show how the parts fit together, using clear structure and precise language suitable for teaching the topic at an academic level."
+
+This is good because it:
+- Focuses on explanation METHODOLOGY (clear structure, from start to finish)
+- Sets QUALITY expectations (thorough, precise, academic level)
+- Uses non-technical, accessible language
+- Defines what a good explanation looks like
+
+BAD scope statement example:
+"Explain what X is and how it works with Y to accomplish Z."
+
+This is bad because it:
+- Describes CONTENT instead of explanation approach
+- Doesn't set quality/depth expectations
+- Is too vague about structure
+
+Generate a scope statement that:
+1. Is 1-2 sentences
+2. Uses accessible, non-technical language
+3. Defines HOW to explain (methodology, structure)
+4. Sets clear quality expectations (thorough, academic, clear, etc.)
+5. Does NOT describe the topic content itself
 
 Return JSON with:
-- scope: The scope statement (1-2 sentences)
-- learningObjectives: 2-3 bullet points of what they'll learn`;
+- scope: The methodology-focused scope statement
+- learningObjectives: 2-3 teaching skills they'll develop`;
 
 export async function generateScope(
   input: ScopeGeneratorInput
