@@ -54,6 +54,21 @@ export default function ExplainPage() {
   const generateQuizMutation = api.quiz.generate.useMutation();
 
   const isContinuingStudySession = !!studySessionIdFromUrl || !!activeStudySessionId;
+  
+  // URL params for pre-filling from Knowledge Graph
+  const topicFromUrl = searchParams.get('topic');
+  const scopeFromUrl = searchParams.get('scope');
+  const fromGraph = searchParams.get('fromGraph') === 'true';
+
+  // Pre-fill from URL params (when coming from Knowledge Graph)
+  useEffect(() => {
+    if (topicFromUrl && !topic.trim()) {
+      setTopic(topicFromUrl);
+    }
+    if (scopeFromUrl && !scopeStatement.trim()) {
+      setScopeStatement(scopeFromUrl);
+    }
+  }, [topicFromUrl, scopeFromUrl]);
 
   useEffect(() => {
     const session = resumeSessionQuery.data;

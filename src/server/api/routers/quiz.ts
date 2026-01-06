@@ -11,6 +11,7 @@ import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { generateQuizQuestions } from '@/server/ai/quiz-generator';
 import { gradeShortAnswerWithGemini } from '@/server/ai/quiz-grader';
 import { CREDIT_COSTS, TIER_LIMITS } from '@/lib/constants';
+import { updateKnowledgeGraphOnCompletion } from '@/server/api/helpers/update-knowledge-graph';
 
 const studentTypeSchema = z.enum(['CURIOUS', 'EXAM_FOCUSED', 'CHALLENGING', 'BEGINNER']);
 
@@ -264,7 +265,7 @@ export const quizRouter = createTRPCRouter({
         where: { id: input.quizSessionId },
         select: {
           ...quizSessionSelect,
-          explanation: { select: { studySessionId: true, evalOverallScore: true } },
+          explanation: { select: { studySessionId: true, evalOverallScore: true, transcription: true } },
         },
       });
 
@@ -295,7 +296,14 @@ export const quizRouter = createTRPCRouter({
 
       const studySession = await ctx.prisma.studySession.findUnique({
         where: { id: session.explanation.studySessionId },
-        select: { id: true, userId: true, status: true, masteryStreak: true },
+        select: { 
+          id: true, 
+          userId: true, 
+          status: true, 
+          masteryStreak: true,
+          topic: true,
+          scopeStatement: true,
+        },
       });
 
       if (!studySession || studySession.userId !== ctx.session.user.id) {
@@ -352,6 +360,20 @@ export const quizRouter = createTRPCRouter({
           select: { id: true, status: true, masteryStreak: true, completedAt: true },
         }),
       ]);
+
+      // Update knowledge graph if session just completed
+      if (completesSession && session.explanation.transcription) {
+        // Fire and forget - don't block the response
+        updateKnowledgeGraphOnCompletion({
+          prisma: ctx.prisma,
+          userId: ctx.session.user.id,
+          studySessionId: studySession.id,
+          topic: studySession.topic,
+          scopeStatement: studySession.scopeStatement,
+          transcription: session.explanation.transcription,
+          masteryLevel: explanationScore ? Math.min(1, explanationScore / 10) : 0.9,
+        }).catch((err) => console.error('Knowledge graph update failed:', err));
+      }
 
       return {
         quizSession: updatedSession,

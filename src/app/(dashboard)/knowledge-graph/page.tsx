@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api } from '@/trpc/react';
+import { StartSessionModal } from '@/components/knowledge-graph/start-session-modal';
 
 // Dynamic import for react-force-graph-2d (no SSR)
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
@@ -55,6 +56,11 @@ export default function KnowledgeGraphPage() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const [unexploredNodeForModal, setUnexploredNodeForModal] = useState<{
+    node: GraphNode;
+    parentTopic?: string;
+    relationshipType?: 'PREREQUISITE' | 'RELATED' | 'SUBTOPIC';
+  } | null>(null);
 
   const { data: graphData, isLoading } = api.knowledgeGraph.getGraph.useQuery();
   const { data: stats } = api.knowledgeGraph.getStats.useQuery();
@@ -152,12 +158,36 @@ export default function KnowledgeGraphPage() {
 
   // Node click handler
   const handleNodeClick = useCallback((node: GraphNode) => {
-    setSelectedNode(node);
-    if (graphRef.current) {
-      graphRef.current.centerAt(node.x, node.y, 500);
-      graphRef.current.zoom(2, 500);
+    if (node.isSuggested) {
+      // For unexplored nodes, find what topic it's connected to
+      const edge = graphData?.edges.find(
+        (e) => e.target === node.id || e.source === node.id
+      );
+      let parentTopic: string | undefined;
+      let relationshipType: 'PREREQUISITE' | 'RELATED' | 'SUBTOPIC' | undefined;
+
+      if (edge) {
+        // Find the other node
+        const parentId = edge.source === node.id ? edge.target : edge.source;
+        const parentNode = graphData?.nodes.find((n) => n.id === parentId);
+        parentTopic = parentNode?.topic;
+        relationshipType = edge.relationshipType as typeof relationshipType;
+      }
+
+      setUnexploredNodeForModal({
+        node,
+        parentTopic,
+        relationshipType,
+      });
+    } else {
+      // For explored nodes, show details panel and zoom
+      setSelectedNode(node);
+      if (graphRef.current) {
+        graphRef.current.centerAt(node.x, node.y, 500);
+        graphRef.current.zoom(2, 500);
+      }
     }
-  }, []);
+  }, [graphData]);
 
   if (isLoading) {
     return (
@@ -392,11 +422,22 @@ export default function KnowledgeGraphPage() {
           <CardContent className="flex items-center gap-4 py-4">
             <Info className="h-5 w-5 text-violet-600 dark:text-violet-400" />
             <p className="text-sm text-violet-700 dark:text-violet-300">
-              <strong>Tip:</strong> Click nodes to see details. Drag to reposition. Scroll to zoom.
-              Larger nodes = higher mastery.
+              <strong>Tip:</strong> Click explored (green) nodes to see details. Click suggested (gray) nodes to start a new study session.
+              Scroll to zoom. Larger nodes = higher mastery.
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Start Session Modal for unexplored nodes */}
+      {unexploredNodeForModal && (
+        <StartSessionModal
+          open={!!unexploredNodeForModal}
+          onClose={() => setUnexploredNodeForModal(null)}
+          node={unexploredNodeForModal.node}
+          parentTopic={unexploredNodeForModal.parentTopic}
+          relationshipType={unexploredNodeForModal.relationshipType}
+        />
       )}
     </div>
   );
