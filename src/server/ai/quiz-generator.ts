@@ -80,6 +80,9 @@ function tryParseJson(text: string): unknown {
     .trim();
   if (withoutFences !== trimmed) candidates.push(withoutFences);
 
+  const innerFence = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (innerFence) candidates.push(innerFence[1].trim());
+
   const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
   if (arrayMatch) candidates.push(arrayMatch[0]);
 
@@ -101,8 +104,20 @@ function tryParseJson(text: string): unknown {
 function normalizeQuestions(parsed: unknown): unknown[] {
   if (Array.isArray(parsed)) return parsed;
   if (typeof parsed === 'object' && parsed !== null) {
-    const maybe = (parsed as { questions?: unknown }).questions;
-    if (Array.isArray(maybe)) return maybe;
+    const obj = parsed as Record<string, unknown>;
+    for (const key of [
+      'questions',
+      'quiz',
+      'items',
+      'data',
+      'questionList',
+      'results',
+    ]) {
+      const maybe = obj[key];
+      if (Array.isArray(maybe)) return maybe;
+    }
+    const firstArray = Object.values(obj).find((v) => Array.isArray(v));
+    if (Array.isArray(firstArray)) return firstArray;
   }
   throw new Error('Invalid response format');
 }
@@ -149,6 +164,9 @@ export async function generateQuizQuestions({
   try {
     const parsed = tryParseJson(content);
     const questions = normalizeQuestions(parsed);
+    if (questions.length === 0) {
+      throw new Error('Empty questions array');
+    }
 
     return questions.map((q: unknown) => {
       const item = q as Partial<GeneratedQuestion>;
@@ -163,6 +181,7 @@ export async function generateQuizQuestions({
     });
   } catch (error) {
     console.error('Failed to parse quiz questions:', error);
+    console.error('Raw quiz content:', content);
     throw new Error('Failed to parse generated questions');
   }
 }
