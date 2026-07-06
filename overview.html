@@ -1,0 +1,1751 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Explain2Win — System Overview</title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0b0b14;
+        --bg-soft: #11111d;
+        --bg-card: #161628;
+        --bg-elev: #1c1c34;
+        --border: #262645;
+        --border-soft: #1d1d35;
+        --text: #ecebf5;
+        --text-soft: #b6b5ce;
+        --text-mute: #7a7995;
+        --violet: #8b5cf6;
+        --violet-soft: #a78bfa;
+        --indigo: #6366f1;
+        --indigo-soft: #818cf8;
+        --emerald: #10b981;
+        --emerald-soft: #34d399;
+        --amber: #f59e0b;
+        --rose: #f43f5e;
+        --sky: #38bdf8;
+        --pink: #ec4899;
+        --code-bg: #0e0e1a;
+        --shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: var(--violet-soft);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 28px;
+      }
+
+      /* ===== Top nav ===== */
+      .topnav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(18px);
+        background: rgba(11, 11, 20, 0.7);
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .topnav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+      }
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, var(--violet), var(--indigo));
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        box-shadow: 0 6px 18px -6px rgba(139, 92, 246, 0.7);
+      }
+      .nav-links {
+        display: flex;
+        gap: 4px;
+        font-size: 0.86rem;
+        color: var(--text-soft);
+      }
+      .nav-links a {
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: background 0.15s;
+      }
+      .nav-links a:hover {
+        background: var(--bg-card);
+        text-decoration: none;
+      }
+
+      /* ===== Hero ===== */
+      .hero {
+        position: relative;
+        padding: 96px 0 80px;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        height: 900px;
+        background: radial-gradient(
+          circle,
+          rgba(139, 92, 246, 0.18) 0%,
+          rgba(99, 102, 241, 0.08) 35%,
+          transparent 70%
+        );
+        z-index: -1;
+        pointer-events: none;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--violet-soft);
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.25);
+        padding: 6px 12px;
+        border-radius: 100px;
+        margin-bottom: 24px;
+      }
+      .eyebrow-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--violet);
+        box-shadow: 0 0 8px var(--violet);
+      }
+      h1.title {
+        font-family: 'Outfit', sans-serif;
+        font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        margin: 0 0 24px;
+      }
+      .gradient {
+        background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 50%, #60a5fa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .lede {
+        font-size: 1.18rem;
+        color: var(--text-soft);
+        max-width: 720px;
+        margin: 0 0 36px;
+      }
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .pill {
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 6px 12px;
+        border-radius: 100px;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-soft);
+      }
+      .pill .k {
+        color: var(--text-mute);
+        margin-right: 6px;
+      }
+
+      /* ===== Section ===== */
+      section {
+        padding: 64px 0;
+        border-top: 1px solid var(--border-soft);
+      }
+      .sec-head {
+        margin-bottom: 36px;
+      }
+      .sec-tag {
+        display: inline-block;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.78rem;
+        color: var(--indigo-soft);
+        margin-bottom: 10px;
+        letter-spacing: 0.06em;
+      }
+      h2 {
+        font-family: 'Outfit', sans-serif;
+        font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 12px;
+      }
+      .sec-sub {
+        font-size: 1.05rem;
+        color: var(--text-soft);
+        max-width: 760px;
+        margin: 0;
+      }
+
+      /* ===== TLDR card ===== */
+      .tldr {
+        background: linear-gradient(140deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.04));
+        border: 1px solid rgba(139, 92, 246, 0.22);
+        border-radius: 18px;
+        padding: 32px;
+        margin-top: 12px;
+      }
+      .tldr p {
+        margin: 0 0 14px;
+        font-size: 1.05rem;
+        color: var(--text);
+      }
+      .tldr p:last-child {
+        margin: 0;
+      }
+      .tldr strong {
+        color: var(--violet-soft);
+      }
+
+      /* ===== Cards grid ===== */
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+      .grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      @media (max-width: 900px) {
+        .grid-3,
+        .grid-2,
+        .grid-4 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        padding: 24px;
+        transition: border-color 0.2s, transform 0.2s;
+      }
+      .card:hover {
+        border-color: var(--border);
+        transform: translateY(-2px);
+      }
+      .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 16px;
+        font-size: 20px;
+      }
+      .ic-violet {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--violet-soft);
+      }
+      .ic-indigo {
+        background: rgba(99, 102, 241, 0.15);
+        color: var(--indigo-soft);
+      }
+      .ic-emerald {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--emerald-soft);
+      }
+      .ic-amber {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--amber);
+      }
+      .ic-rose {
+        background: rgba(244, 63, 94, 0.15);
+        color: var(--rose);
+      }
+      .ic-sky {
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--sky);
+      }
+      .ic-pink {
+        background: rgba(236, 72, 153, 0.15);
+        color: var(--pink);
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .card p {
+        margin: 0;
+        font-size: 0.92rem;
+        color: var(--text-soft);
+      }
+
+      /* ===== Pipeline diagram ===== */
+      .pipeline {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin: 8px 0 24px;
+      }
+      @media (max-width: 900px) {
+        .pipeline {
+          grid-template-columns: 1fr;
+        }
+      }
+      .step {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 14px 14px 16px;
+        position: relative;
+        text-align: left;
+      }
+      .step-num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: var(--text-mute);
+        margin-bottom: 6px;
+      }
+      .step-title {
+        font-size: 0.88rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+      }
+      .step-sub {
+        font-size: 0.78rem;
+        color: var(--text-soft);
+        line-height: 1.45;
+      }
+      .step-bar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 3px;
+        border-radius: 12px 12px 0 0;
+      }
+      .bar-violet {
+        background: linear-gradient(90deg, var(--violet), var(--indigo));
+      }
+      .bar-indigo {
+        background: linear-gradient(90deg, var(--indigo), var(--sky));
+      }
+      .bar-emerald {
+        background: linear-gradient(90deg, var(--emerald), #4ade80);
+      }
+      .bar-amber {
+        background: linear-gradient(90deg, var(--amber), #fbbf24);
+      }
+      .bar-rose {
+        background: linear-gradient(90deg, var(--rose), #fb7185);
+      }
+      .bar-pink {
+        background: linear-gradient(90deg, var(--pink), #f472b6);
+      }
+      .bar-sky {
+        background: linear-gradient(90deg, var(--sky), #7dd3fc);
+      }
+
+      /* ===== Architecture diagram ===== */
+      .arch {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 28px;
+        margin-top: 8px;
+      }
+      .arch-row {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .arch-row:last-child {
+        margin-bottom: 0;
+      }
+      .arch-layer {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border-soft);
+        background: var(--bg-soft);
+      }
+      .arch-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: var(--text-mute);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        min-width: 110px;
+      }
+      .arch-chip {
+        font-size: 0.82rem;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .arch-chip .d {
+        color: var(--text-mute);
+        font-size: 0.72rem;
+        margin-left: 6px;
+      }
+      .arch-arrow {
+        text-align: center;
+        color: var(--text-mute);
+        font-size: 0.78rem;
+        padding: 4px 0;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* ===== Stack table ===== */
+      .stack {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+      }
+      .stack-item {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .stack-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        font-weight: 700;
+        background: var(--bg-elev);
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        flex-shrink: 0;
+      }
+      .stack-info {
+        min-width: 0;
+      }
+      .stack-name {
+        font-size: 0.92rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .stack-meta {
+        font-size: 0.78rem;
+        color: var(--text-mute);
+      }
+
+      /* ===== Data model ===== */
+      .models {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+      }
+      .model {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 18px;
+      }
+      .model-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .model-name {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--violet-soft);
+      }
+      .model-tag {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 3px 8px;
+        border-radius: 100px;
+        background: rgba(139, 92, 246, 0.12);
+        color: var(--violet-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .model ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-soft);
+      }
+      .model li {
+        padding: 3px 0;
+      }
+      .model li::before {
+        content: '·';
+        color: var(--text-mute);
+        margin-right: 8px;
+      }
+
+      /* ===== Feature flow ===== */
+      .flow {
+        display: grid;
+        gap: 12px;
+      }
+      .flow-row {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 18px;
+        align-items: start;
+        padding: 18px 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+      }
+      @media (max-width: 700px) {
+        .flow-row {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+      }
+      .flow-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .flow-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--violet), var(--indigo));
+        color: white;
+        display: grid;
+        place-items: center;
+        font-size: 0.78rem;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .flow-body {
+        font-size: 0.92rem;
+        color: var(--text-soft);
+      }
+      .flow-body code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.82rem;
+        background: var(--code-bg);
+        padding: 2px 7px;
+        border-radius: 5px;
+        color: var(--violet-soft);
+        border: 1px solid var(--border-soft);
+      }
+
+      /* ===== Pricing / tier table ===== */
+      .tier-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 900px) {
+        .tier-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .tier {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 22px;
+        position: relative;
+      }
+      .tier.featured {
+        border-color: var(--violet);
+        background: linear-gradient(160deg, rgba(139, 92, 246, 0.08), var(--bg-card));
+      }
+      .tier-badge {
+        position: absolute;
+        top: -10px;
+        right: 16px;
+        background: linear-gradient(135deg, var(--violet), var(--indigo));
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 100px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .tier-name {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .tier-meta {
+        font-size: 0.82rem;
+        color: var(--text-mute);
+        margin-bottom: 14px;
+      }
+      .tier-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.88rem;
+        color: var(--text-soft);
+      }
+      .tier-list li {
+        padding: 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .check {
+        color: var(--emerald-soft);
+        font-weight: 700;
+      }
+      .x {
+        color: var(--text-mute);
+      }
+
+      /* ===== Credits / Cost ===== */
+      .credit-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .credit-table th,
+      .credit-table td {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .credit-table th {
+        background: var(--bg-elev);
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-soft);
+      }
+      .credit-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .credit-table code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.82rem;
+        color: var(--violet-soft);
+        background: var(--code-bg);
+        padding: 1px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--border-soft);
+      }
+
+      /* ===== Personae ===== */
+      .persona-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      @media (max-width: 700px) {
+        .persona-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .persona {
+        background: var(--bg-card);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 16px 18px;
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+      }
+      .persona-emoji {
+        font-size: 1.6rem;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .persona-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+      }
+      .persona-key {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.74rem;
+        color: var(--text-mute);
+        margin-bottom: 6px;
+      }
+      .persona-desc {
+        font-size: 0.85rem;
+        color: var(--text-soft);
+      }
+
+      /* ===== Footer ===== */
+      footer {
+        padding: 60px 0 48px;
+        border-top: 1px solid var(--border-soft);
+        text-align: center;
+        font-size: 0.84rem;
+        color: var(--text-mute);
+      }
+      footer p {
+        margin: 4px 0;
+      }
+      footer a {
+        color: var(--text-soft);
+      }
+
+      /* ===== Misc ===== */
+      .file-tree {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.84rem;
+        background: var(--code-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 18px 20px;
+        line-height: 1.8;
+        color: var(--text-soft);
+        overflow-x: auto;
+        white-space: pre;
+      }
+      .file-tree .dir {
+        color: var(--violet-soft);
+      }
+      .file-tree .f {
+        color: var(--text);
+      }
+      .file-tree .c {
+        color: var(--text-mute);
+      }
+      .callout {
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-left: 3px solid var(--indigo);
+        padding: 16px 18px;
+        border-radius: 10px;
+        font-size: 0.92rem;
+        color: var(--text-soft);
+        margin-top: 16px;
+      }
+      .callout strong {
+        color: var(--indigo-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="topnav">
+      <div class="wrap topnav-inner">
+        <div class="brand">
+          <div class="brand-mark">🎙</div>
+          Explain2Win
+        </div>
+        <div class="nav-links">
+          <a href="#tldr">TL;DR</a>
+          <a href="#concept">Concept</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#features">Features</a>
+          <a href="#data">Data</a>
+          <a href="#stack">Stack</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ============== HERO ============== -->
+    <header class="hero">
+      <div class="wrap">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          Product &amp; System Overview
+        </div>
+        <h1 class="title">
+          Learn by teaching.<br />
+          <span class="gradient">Explain to Win.</span>
+        </h1>
+        <p class="lede">
+          Explain2Win turns voice explanations into mastered knowledge using the
+          Feynman Technique. You speak, AI listens, evaluates, quizzes you, and
+          tracks every concept you conquer.
+        </p>
+        <div class="meta-row">
+          <span class="pill"><span class="k">Type</span>AI learning SaaS</span>
+          <span class="pill"><span class="k">Stack</span>Next.js · tRPC · Prisma · Neon · Gemini · S3 · Stripe</span>
+          <span class="pill"><span class="k">Runtime</span>Node + Turbopack</span>
+          <span class="pill"><span class="k">Status</span>v0.1.0 (active dev)</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============== TLDR ============== -->
+    <section id="tldr">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 01 · TL;DR</div>
+          <h2>What is this, in one read?</h2>
+        </div>
+        <div class="tldr">
+          <p>
+            <strong>Explain2Win</strong> is a study tool that helps you learn
+            by <strong>explaining</strong> topics out loud. You pick a topic
+            (or come from the knowledge graph), record yourself teaching it,
+            and the app does the rest.
+          </p>
+          <p>
+            The audio is uploaded to S3, transcribed by
+            <strong>Google Gemini</strong>, then evaluated on five dimensions
+            (correctness, clarity, depth, relevance, structure). The result
+            becomes a permanent <strong>Explanation</strong> attached to a
+            <strong>Study Session</strong>. You can re-record to improve — the
+            system compares attempts and tracks your <strong>mastery
+            streak</strong>.
+          </p>
+          <p>
+            Next, the AI generates a personalized quiz from your
+            transcription, scored and stored. Over time, a force-directed
+            <strong>knowledge graph</strong> of every topic you&rsquo;ve
+            explored visualizes your learning map, with
+            <strong>Stripe</strong>-powered subscriptions unlocking all four
+            AI student personas and unlimited usage.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== CONCEPT ============== -->
+    <section id="concept">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 02 · Concept</div>
+          <h2>The pedagogical idea</h2>
+          <p class="sec-sub">
+            A modern interpretation of the Feynman Technique, made
+            measurable.
+          </p>
+        </div>
+        <div class="grid grid-3">
+          <div class="card">
+            <div class="card-icon ic-violet">🎯</div>
+            <h3>Pick a topic</h3>
+            <p>
+              Start from scratch, continue a study session, or jump off from
+              an AI-suggested node in your knowledge graph.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon ic-indigo">🗣</div>
+            <h3>Teach it out loud</h3>
+            <p>
+              Record up to 10 minutes (Opus / WebM, 16 kHz mono). Speaking
+              forces articulation &mdash; the gap between &ldquo;thinking you
+              know it&rdquo; and actually knowing it.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon ic-emerald">🧠</div>
+            <h3>Get evaluated</h3>
+            <p>
+              Five-dimension rubric scored 0&ndash;10, with strengths,
+              improvements, missing concepts, and learning objectives
+              extracted.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon ic-amber">❓</div>
+            <h3>Take a quiz</h3>
+            <p>
+              Multiple-choice + short-answer questions generated from your
+              actual words. The questions adapt to your chosen student
+              persona.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon ic-rose">📈</div>
+            <h3>Iterate</h3>
+            <p>
+              Re-explain the same topic, compare your attempts side-by-side,
+              and watch your mastery streak grow.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-icon ic-sky">🕸</div>
+            <h3>See your map</h3>
+            <p>
+              Every topic becomes a node in a personal knowledge graph, with
+              mastery colour-coded and AI-suggested neighbours.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== PIPELINE ============== -->
+    <section id="pipeline">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 03 · Pipeline</div>
+          <h2>The seven-step explain flow</h2>
+          <p class="sec-sub">
+            What happens between clicking <em>Record</em> and seeing a quiz.
+          </p>
+        </div>
+        <div class="pipeline">
+          <div class="step">
+            <div class="step-bar bar-violet"></div>
+            <div class="step-num">01</div>
+            <div class="step-title">Record</div>
+            <div class="step-sub">
+              Browser MediaRecorder → WebM/Opus 16 kHz, up to 10 min
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-bar bar-indigo"></div>
+            <div class="step-num">02</div>
+            <div class="step-title">Upload</div>
+            <div class="step-sub">
+              Direct to AWS S3 (<code>eu-north-1</code>), 25 MB cap
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-bar bar-sky"></div>
+            <div class="step-num">03</div>
+            <div class="step-title">Transcribe</div>
+            <div class="step-sub">
+              Gemini 2.5 Flash audio → raw text, then cleanup pass
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-bar bar-emerald"></div>
+            <div class="step-num">04</div>
+            <div class="step-title">Persist</div>
+            <div class="step-sub">
+              tRPC mutation writes <code>Explanation</code> row, deducts
+              credits
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-bar bar-amber"></div>
+            <div class="step-num">05</div>
+            <div class="step-title">Evaluate</div>
+            <div class="step-sub">
+              Gemini scores 5 dimensions, lists strengths &amp; gaps, writes
+              back to row
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-bar bar-rose"></div>
+            <div class="step-num">06</div>
+            <div class="step-title">Generate Quiz</div>
+            <div class="step-sub">
+              Persona-aware question set, mixed MCQ + short answer, validated
+              to JSON
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-bar bar-pink"></div>
+            <div class="step-num">07</div>
+            <div class="step-title">Update Graph</div>
+            <div class="step-sub">
+              TopicNode mastery recomputed from latest quiz score, edges to
+              related topics
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== ARCHITECTURE ============== -->
+    <section id="architecture">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 04 · Architecture</div>
+          <h2>How the pieces fit together</h2>
+          <p class="sec-sub">
+            A single Next.js 16 app with tRPC as the API, plus five external
+            services.
+          </p>
+        </div>
+
+        <div class="arch">
+          <div class="arch-row">
+            <div class="arch-layer">
+              <div class="arch-label">Client</div>
+              <div class="arch-chip">React 19 RSC <span class="d">app/(dashboard)/*</span></div>
+              <div class="arch-chip">Tailwind v4 <span class="d">shadcn/ui</span></div>
+              <div class="arch-chip">TanStack Query <span class="d">via tRPC</span></div>
+              <div class="arch-chip">Framer Motion</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-row">
+            <div class="arch-layer">
+              <div class="arch-label">API</div>
+              <div class="arch-chip">tRPC routers <span class="d">9 routers · ~50 procedures</span></div>
+              <div class="arch-chip">NextAuth v5 <span class="d">OAuth + credentials</span></div>
+              <div class="arch-chip">REST routes <span class="d">/transcribe · /upload · /webhooks/stripe</span></div>
+              <div class="arch-chip">Zod validation</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-row">
+            <div class="arch-layer">
+              <div class="arch-label">Domain</div>
+              <div class="arch-chip ic-emerald">Transcription <span class="d">audio → text</span></div>
+              <div class="arch-chip ic-emerald">Explanation Evaluator <span class="d">5-dim scoring</span></div>
+              <div class="arch-chip ic-emerald">Quiz Generator <span class="d">questions JSON</span></div>
+              <div class="arch-chip ic-emerald">Quiz Grader</div>
+              <div class="arch-chip ic-emerald">Comparison Analyzer</div>
+              <div class="arch-chip ic-emerald">Topic Extractor</div>
+              <div class="arch-chip ic-emerald">Scope Generator</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-row">
+            <div class="arch-layer">
+              <div class="arch-label">Data</div>
+              <div class="arch-chip">Prisma 6 ORM</div>
+              <div class="arch-chip">Neon Postgres <span class="d">eu-west-2</span></div>
+              <div class="arch-chip">AWS S3 <span class="d">eu-north-1, audio</span></div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-row">
+            <div class="arch-layer">
+              <div class="arch-label">External</div>
+              <div class="arch-chip">Google Gemini <span class="d">4 model roles</span></div>
+              <div class="arch-chip">Stripe <span class="d">subscriptions + webhooks</span></div>
+              <div class="arch-chip">NextAuth providers <span class="d">Google · GitHub</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Why tRPC over REST?</strong> Every screen is type-safe end
+          to end &mdash; adding a new field to <code>Explanation</code> in
+          the Prisma schema automatically propagates types to React
+          components and the validation layer, with zero hand-written types.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== FEATURES ============== -->
+    <section id="features">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 05 · Features</div>
+          <h2>What users actually do</h2>
+        </div>
+
+        <div class="flow">
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">1</div>
+              Sign in
+            </div>
+            <div class="flow-body">
+              Google or GitHub OAuth, or email/password (bcrypt). On first
+              login, a <code>User</code>, <code>UserProgress</code>,
+              <code>UserPreferences</code>, <code>Subscription</code> (Free
+              tier), and <code>Credits</code> (50/mo) row are created.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">2</div>
+              Explore the graph
+            </div>
+            <div class="flow-body">
+              A 2D force-directed canvas (<code>react-force-graph-2d</code>)
+              shows every topic you&rsquo;ve studied. New topics get a
+              &ldquo;suggested&rdquo; flag. Click a node to start a session.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">3</div>
+              Record an explanation
+            </div>
+            <div class="flow-body">
+              On <code>/explain</code>: choose a student persona, set the
+              scope statement, hit record. A live waveform visualizer shows
+              audio levels. Min 10 s, max 10 min.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">4</div>
+              Receive evaluation
+            </div>
+            <div class="flow-body">
+              Within ~20 s, the <code>EvaluationCard</code> shows an overall
+              score (e.g. 8.9 / 10), per-dimension bars, strengths,
+              improvements, missing concepts, and learning objectives.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">5</div>
+              Take the quiz
+            </div>
+            <div class="flow-body">
+              3&ndash;10 questions, mix of MCQ and short answer, 60 s per
+              question. The grader compares your answer to the model answer
+              with a forgiving similarity check.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">6</div>
+              Review &amp; iterate
+            </div>
+            <div class="flow-body">
+              <code>/explanations/[id]</code> shows full transcript + audio
+              player + feedback. <code>/study-sessions/[id]</code> compares
+              multiple attempts with a radar chart and score-delta badge.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">7</div>
+              Watch mastery grow
+            </div>
+            <div class="flow-body">
+              <code>/progress</code> shows streak, totals, time-series
+              charts (<code>recharts</code>). <code>/question-bank</code>
+              stores all generated questions for spaced repetition.
+            </div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-label">
+              <div class="flow-num">8</div>
+              Upgrade (optional)
+            </div>
+            <div class="flow-body">
+              <code>/billing</code> shows three tiers. Stripe checkout
+              creates a <code>Subscription</code>, the webhook refills
+              credits, and a tier upgrade unlocks all four student
+              personas.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== DATA MODEL ============== -->
+    <section id="data">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 06 · Data Model</div>
+          <h2>What lives in the database</h2>
+          <p class="sec-sub">
+            Twelve Prisma models, grouped by responsibility. Postgres on
+            Neon.
+          </p>
+        </div>
+
+        <h3
+          style="font-size: 0.95rem; color: var(--text-mute); margin: 18px 0 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;"
+        >
+          Auth (NextAuth)
+        </h3>
+        <div class="models">
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">User</div>
+              <div class="model-tag">core</div>
+            </div>
+            <ul>
+              <li>email, name, image, password?</li>
+              <li>emailVerified, createdAt</li>
+              <li>Has many: explanations, sessions, accounts, quiz sessions</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">Account</div>
+              <div class="model-tag">oauth</div>
+            </div>
+            <ul>
+              <li>provider, providerAccountId</li>
+              <li>access_token, refresh_token, id_token</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">Session</div>
+              <div class="model-tag">cookie</div>
+            </div>
+            <ul>
+              <li>sessionToken (unique)</li>
+              <li>expires</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">VerificationToken</div>
+              <div class="model-tag">flow</div>
+            </div>
+            <ul>
+              <li>identifier, token, expires</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3
+          style="font-size: 0.95rem; color: var(--text-mute); margin: 28px 0 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;"
+        >
+          Learning core
+        </h3>
+        <div class="models">
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">StudySession</div>
+              <div class="model-tag">container</div>
+            </div>
+            <ul>
+              <li>topic, scopeStatement</li>
+              <li>status: ACTIVE | COMPLETED</li>
+              <li>masteryStreak (consecutive wins)</li>
+              <li>Has many: explanations</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">Explanation</div>
+              <div class="model-tag">attempt</div>
+            </div>
+            <ul>
+              <li>transcription, audioUrl, duration</li>
+              <li>attemptNumber (per session)</li>
+              <li>eval scores (5 dims) + JSON feedback</li>
+              <li>evalMissingConcepts, evalLearningObjectives</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">Question</div>
+              <div class="model-tag">quiz</div>
+            </div>
+            <ul>
+              <li>questionType: MCQ | SHORT_ANSWER</li>
+              <li>options (JSON), correctAnswer, explanation</li>
+              <li>difficulty, studentType</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">QuizSession</div>
+              <div class="model-tag">quiz</div>
+            </div>
+            <ul>
+              <li>One per Explanation (1:1)</li>
+              <li>score, totalQuestions, correctAnswers</li>
+              <li>completedAt</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">QuizAnswer</div>
+              <div class="model-tag">quiz</div>
+            </div>
+            <ul>
+              <li>userAnswer, isCorrect, timeTaken</li>
+              <li>Links to quizSession + question</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">AttemptComparison</div>
+              <div class="model-tag">llm-cache</div>
+            </div>
+            <ul>
+              <li>earlierAttemptId + laterAttemptId (unique)</li>
+              <li>newConcepts, missingConcepts (JSON)</li>
+              <li>dimensionAnalysis, summary</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3
+          style="font-size: 0.95rem; color: var(--text-mute); margin: 28px 0 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;"
+        >
+          User data &amp; monetization
+        </h3>
+        <div class="models">
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">UserProgress</div>
+              <div class="model-tag">metrics</div>
+            </div>
+            <ul>
+              <li>totalExplanations, totalQuizzes</li>
+              <li>totalCorrectAnswers, totalQuestions</li>
+              <li>currentStreak, longestStreak, lastActivityDate</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">UserPreferences</div>
+              <div class="model-tag">settings</div>
+            </div>
+            <ul>
+              <li>preferredStudentType</li>
+              <li>dailyGoal, emailNotifications</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">Subscription</div>
+              <div class="model-tag">billing</div>
+            </div>
+            <ul>
+              <li>stripeCustomerId, stripeSubscriptionId</li>
+              <li>tier: FREE | PRO | PREMIUM</li>
+              <li>status, currentPeriodStart/End, cancelAtPeriodEnd</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">Credits</div>
+              <div class="model-tag">billing</div>
+            </div>
+            <ul>
+              <li>balance (default 50, test-mode 500)</li>
+              <li>Has many: CreditUsage</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">CreditUsage</div>
+              <div class="model-tag">billing</div>
+            </div>
+            <ul>
+              <li>amount (negative for usage)</li>
+              <li>type: TRANSCRIPTION | QUIZ | REFILL | PURCHASE | BONUS</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3
+          style="font-size: 0.95rem; color: var(--text-mute); margin: 28px 0 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;"
+        >
+          Knowledge graph
+        </h3>
+        <div class="models">
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">TopicNode</div>
+              <div class="model-tag">graph</div>
+            </div>
+            <ul>
+              <li>topic, normalizedTopic (unique per user)</li>
+              <li>masteryLevel (0&ndash;1), isExplored, isSuggested</li>
+              <li>positionX/Y for layout persistence</li>
+              <li>Optional link to studySession</li>
+            </ul>
+          </div>
+          <div class="model">
+            <div class="model-head">
+              <div class="model-name">TopicRelation</div>
+              <div class="model-tag">graph</div>
+            </div>
+            <ul>
+              <li>fromNodeId, toNodeId (unique pair)</li>
+              <li>relationshipType: PREREQUISITE | RELATED | SUBTOPIC</li>
+              <li>strength (0&ndash;1)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== STACK ============== -->
+    <section id="stack">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 07 · Stack</div>
+          <h2>Tech, at a glance</h2>
+        </div>
+        <div class="stack">
+          <div class="stack-item">
+            <div class="stack-mark">N</div>
+            <div class="stack-info">
+              <div class="stack-name">Next.js 16</div>
+              <div class="stack-meta">App Router · Turbopack · RSC</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">R</div>
+            <div class="stack-info">
+              <div class="stack-name">React 19</div>
+              <div class="stack-meta">Server + client components</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">t</div>
+            <div class="stack-info">
+              <div class="stack-name">tRPC 11</div>
+              <div class="stack-meta">End-to-end type-safe API</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">P</div>
+            <div class="stack-info">
+              <div class="stack-name">Prisma 6</div>
+              <div class="stack-meta">PostgreSQL ORM</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">G</div>
+            <div class="stack-info">
+              <div class="stack-name">Gemini 2.5 Flash</div>
+              <div class="stack-meta">4 model roles (env-overridable)</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">A</div>
+            <div class="stack-info">
+              <div class="stack-name">Auth.js v5</div>
+              <div class="stack-meta">Google + GitHub + credentials</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">S</div>
+            <div class="stack-info">
+              <div class="stack-name">Stripe</div>
+              <div class="stack-meta">Subscriptions + webhooks</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">☁</div>
+            <div class="stack-info">
+              <div class="stack-name">AWS S3</div>
+              <div class="stack-meta">Audio storage (eu-north-1)</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">N</div>
+            <div class="stack-info">
+              <div class="stack-name">Neon Postgres</div>
+              <div class="stack-meta">Serverless PG (eu-west-2)</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">T</div>
+            <div class="stack-info">
+              <div class="stack-name">Tailwind v4</div>
+              <div class="stack-meta">+ shadcn/ui + Radix primitives</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">Z</div>
+            <div class="stack-info">
+              <div class="stack-name">Zod 4</div>
+              <div class="stack-meta">Schema validation everywhere</div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-mark">V</div>
+            <div class="stack-info">
+              <div class="stack-name">Vitest + Playwright</div>
+              <div class="stack-meta">Unit + E2E tests</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== TIER / PRICING ============== -->
+    <section id="pricing">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 08 · Monetization</div>
+          <h2>Tiers &amp; credit costs</h2>
+          <p class="sec-sub">
+            Stripe-driven subscriptions. Free tier is fully usable; paid
+            tiers unlock more student personas, more credits, and longer
+            audio retention.
+          </p>
+        </div>
+
+        <div class="tier-grid">
+          <div class="tier">
+            <div class="tier-name">Free</div>
+            <div class="tier-meta">Default for every new user</div>
+            <ul class="tier-list">
+              <li><span class="check">✓</span> 50 credits / month</li>
+              <li><span class="check">✓</span> 7-day audio retention</li>
+              <li><span class="check">✓</span> 50 question bank slots</li>
+              <li><span class="check">✓</span> 1 student persona (Curious)</li>
+            </ul>
+          </div>
+          <div class="tier featured">
+            <div class="tier-badge">Most popular</div>
+            <div class="tier-name">Pro</div>
+            <div class="tier-meta">For active learners</div>
+            <ul class="tier-list">
+              <li><span class="check">✓</span> 500 credits / month</li>
+              <li><span class="check">✓</span> 30-day audio retention</li>
+              <li><span class="check">✓</span> Unlimited question bank</li>
+              <li><span class="check">✓</span> All 4 student personas</li>
+            </ul>
+          </div>
+          <div class="tier">
+            <div class="tier-name">Premium</div>
+            <div class="tier-meta">Power users &amp; teachers</div>
+            <ul class="tier-list">
+              <li><span class="check">✓</span> Unlimited credits</li>
+              <li><span class="check">✓</span> Permanent audio retention</li>
+              <li><span class="check">✓</span> Unlimited question bank</li>
+              <li><span class="check">✓</span> All personas + priority</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3
+          style="font-size: 0.95rem; color: var(--text-mute); margin: 36px 0 14px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;"
+        >
+          Credit cost per action
+        </h3>
+        <table class="credit-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Cost</th>
+              <th>Where</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Transcription (per minute)</td>
+              <td><code>1</code></td>
+              <td><code>explanation.create</code></td>
+            </tr>
+            <tr>
+              <td>Quiz generation</td>
+              <td><code>5</code></td>
+              <td><code>quiz.generate</code></td>
+            </tr>
+            <tr>
+              <td>Re-quiz (same explanation)</td>
+              <td><code>2</code></td>
+              <td><code>quiz.regenerate</code></td>
+            </tr>
+            <tr>
+              <td>Attempt comparison</td>
+              <td><code>1</code></td>
+              <td><code>comparison.compare</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3
+          style="font-size: 0.95rem; color: var(--text-mute); margin: 36px 0 14px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;"
+        >
+          The four student personas
+        </h3>
+        <p class="sec-sub" style="margin-bottom: 18px;">
+          Each quiz is framed by a persona &mdash; they shape what kinds of
+          questions get asked.
+        </p>
+        <div class="persona-grid">
+          <div class="persona">
+            <div class="persona-emoji">🤔</div>
+            <div>
+              <div class="persona-name">Curious</div>
+              <div class="persona-key">CURIOUS</div>
+              <div class="persona-desc">
+                Asks <em>why</em> and <em>how</em>. Free tier.
+              </div>
+            </div>
+          </div>
+          <div class="persona">
+            <div class="persona-emoji">📝</div>
+            <div>
+              <div class="persona-name">Exam-Focused</div>
+              <div class="persona-key">EXAM_FOCUSED</div>
+              <div class="persona-desc">
+                Definitions, formulas, testable facts.
+              </div>
+            </div>
+          </div>
+          <div class="persona">
+            <div class="persona-emoji">😈</div>
+            <div>
+              <div class="persona-name">Challenging</div>
+              <div class="persona-key">CHALLENGING</div>
+              <div class="persona-desc">
+                Devil&rsquo;s advocate &mdash; edge cases and
+                counterexamples.
+              </div>
+            </div>
+          </div>
+          <div class="persona">
+            <div class="persona-emoji">🌱</div>
+            <div>
+              <div class="persona-name">Beginner</div>
+              <div class="persona-key">BEGINNER</div>
+              <div class="persona-desc">
+                Foundational questions to build confidence.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== FOLDER STRUCTURE ============== -->
+    <section id="structure">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-tag">// 09 · Codebase Map</div>
+          <h2>Where things live</h2>
+          <p class="sec-sub">
+            A pragmatic Next.js App-Router layout with a clear
+            server/<wbr />client boundary.
+          </p>
+        </div>
+
+        <div class="file-tree">
+<span class="dir">src/</span>
+├── <span class="dir">app/</span>                      <span class="c"># Routes (App Router)</span>
+│   ├── <span class="f">page.tsx</span>                <span class="c"># Landing</span>
+│   ├── <span class="dir">(auth)/</span>                <span class="c"># /login, /register</span>
+│   ├── <span class="dir">(dashboard)/</span>           <span class="c"># Authenticated app</span>
+│   │   ├── <span class="f">dashboard/</span>            <span class="c"># Overview stats</span>
+│   │   ├── <span class="f">explain/</span>              <span class="c"># Record + evaluate</span>
+│   │   ├── <span class="f">explanations/[id]/</span>   <span class="c"># Single attempt review</span>
+│   │   ├── <span class="f">quiz/[sessionId]/</span>    <span class="c"># Quiz interface</span>
+│   │   ├── <span class="f">study-sessions/</span>      <span class="c"># List + per-session compare</span>
+│   │   ├── <span class="f">question-bank/</span>       <span class="c"># Saved questions</span>
+│   │   ├── <span class="f">progress/</span>            <span class="c"># Streaks + charts</span>
+│   │   ├── <span class="f">knowledge-graph/</span>     <span class="c"># Force-directed graph</span>
+│   │   ├── <span class="f">billing/</span>             <span class="c"># Subscription mgmt</span>
+│   │   └── <span class="f">settings/</span>            <span class="c"># User prefs</span>
+│   └── <span class="dir">api/</span>
+│       ├── <span class="f">auth/[...]/</span>          <span class="c"># NextAuth handlers</span>
+│       ├── <span class="f">transcribe/</span>          <span class="c"># REST: audio → text</span>
+│       ├── <span class="f">upload/</span>              <span class="c"># REST: file → S3</span>
+│       ├── <span class="f">trpc/[trpc]/</span>         <span class="c"># tRPC fetch adapter</span>
+│       └── <span class="f">webhooks/stripe/</span>     <span class="c"># Subscription events</span>
+├── <span class="dir">server/</span>                   <span class="c"># Server-only code</span>
+│   ├── <span class="dir">api/</span>
+│   │   ├── <span class="f">trpc.ts</span>             <span class="c"># Procedure builders</span>
+│   │   ├── <span class="f">root.ts</span>             <span class="c"># Router composition</span>
+│   │   ├── <span class="f">routers/</span>            <span class="c"># 9 feature routers</span>
+│   │   └── <span class="f">helpers/</span>            <span class="c"># Knowledge graph updater</span>
+│   ├── <span class="dir">ai/</span>                    <span class="c"># Gemini integration</span>
+│   │   ├── <span class="f">prompts.ts</span>          <span class="c"># Prompt templates</span>
+│   │   ├── <span class="f">transcription.ts</span>
+│   │   ├── <span class="f">explanation-evaluator.ts</span>
+│   │   ├── <span class="f">quiz-generator.ts</span>
+│   │   ├── <span class="f">quiz-grader.ts</span>
+│   │   ├── <span class="f">comparison-analyzer.ts</span>
+│   │   ├── <span class="f">scope-generator.ts</span>
+│   │   └── <span class="f">topic-extractor.ts</span>
+│   ├── <span class="f">auth/</span>                   <span class="c"># NextAuth config</span>
+│   ├── <span class="f">db/</span>                     <span class="c"># Prisma client singleton</span>
+│   └── <span class="f">storage/</span>                <span class="c"># AWS S3 helper</span>
+├── <span class="dir">components/</span>               <span class="c"># Reusable UI</span>
+│   ├── <span class="f">ui/</span>                    <span class="c"># shadcn primitives</span>
+│   ├── <span class="f">layout/</span>                <span class="c"># Header, Sidebar</span>
+│   ├── <span class="f">auth/</span>                  <span class="c"># Login/register forms</span>
+│   ├── <span class="f">audio/</span>                 <span class="c"># Player + recorder</span>
+│   ├── <span class="f">explain/</span>               <span class="c"># Visualizer</span>
+│   ├── <span class="f">explanation/</span>           <span class="c"># Eval + feedback</span>
+│   ├── <span class="f">quiz/</span>                  <span class="c"># Quiz interface + review</span>
+│   ├── <span class="f">study-session/</span>         <span class="c"># Compare + radar</span>
+│   ├── <span class="f">knowledge-graph/</span>       <span class="c"># Start session modal</span>
+│   └── <span class="f">billing/</span>               <span class="c"># Pricing card</span>
+├── <span class="dir">hooks/</span>                    <span class="c"># useAudioRecorder, useQuiz</span>
+├── <span class="dir">lib/</span>                      <span class="c"># constants, utils</span>
+├── <span class="dir">trpc/</span>                     <span class="c"># Client-side tRPC provider</span>
+└── <span class="f">types/</span>                     <span class="c"># Shared types</span>
+
+<span class="dir">prisma/</span>
+├── <span class="f">schema.prisma</span>               <span class="c"># 12 models, 7 enums</span>
+├── <span class="f">seed.ts</span>                    <span class="c"># Dev seed</span>
+└── <span class="f">migrations/</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== FOOTER ============== -->
+    <footer>
+      <p>Explain2Win · v0.1.0 · Built with Next.js, tRPC, Prisma, Gemini</p>
+      <p>
+        Generated overview · Designed to be read by anyone, not just
+        engineers
+      </p>
+    </footer>
+  </body>
+</html>
